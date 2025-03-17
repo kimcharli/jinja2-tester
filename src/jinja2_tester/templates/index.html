@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jinja2 Template Validator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="main-container">
+        <h1>Jinja2 Template Validator</h1>
+        
+        <div class="split-layout">
+            <!-- Left Panel - Inputs -->
+            <div class="left-panel">
+                <div class="input-section">
+                    <h3>Template Input</h3>
+                    <div class="input-controls">
+                        <button id="downloadTemplateBtn" class="secondary-button">Download</button>
+                        <button id="uploadTemplateBtn" class="secondary-button">Upload</button>
+                        <input type="file" id="templateFile" accept=".j2,.jinja,.jinja2,.html,.txt" style="display: none;">
+                    </div>
+                    <textarea id="templateInput" name="template" placeholder="Enter your Jinja2 template here...">{{ template_input }}</textarea>
+                </div>
+                
+                <div class="input-section">
+                    <h3>Data Input (JSON)</h3>
+                    <div class="input-controls">
+                        <button id="downloadDataBtn" class="secondary-button">Download</button>
+                        <button id="uploadDataBtn" class="secondary-button">Upload</button>
+                        <input type="file" id="dataFile" accept=".json,.yaml,.yml" style="display: none;">
+                    </div>
+                    <textarea id="dataInput" name="data" placeholder="Enter test data as JSON (e.g., {'name': 'John'})">{{ data_input if data_input else '{}' }}</textarea>
+                </div>
+                
+                <button id="validateBtn" class="primary-button">Validate and Render</button>
+                
+                <!-- Always include result div -->
+                <div id="resultDiv" class="result" style="display: none;"></div>
+            </div>
+
+            <!-- Right Panel - Output -->
+            <div class="right-panel">
+                <div class="output-section">
+                    <h3>Rendered Output</h3>
+                    <div class="input-controls">
+                        <button id="downloadOutputBtn" class="secondary-button">Download Output</button>
+                    </div>
+                    <div id="outputArea" class="output-area empty">
+                        <div class="placeholder-text">Rendered output will appear here...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
