@@ -1,3 +1,7 @@
+const jsYaml = document.createElement('script');
+jsYaml.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js';
+document.head.appendChild(jsYaml);
+
 document.addEventListener('DOMContentLoaded', function() {
     const templateInput = document.getElementById('templateInput');
     const dataInput = document.getElementById('dataInput');
@@ -8,6 +12,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const dataFile = document.getElementById('dataFile');
     const resultDiv = document.getElementById('resultDiv');
     const outputArea = document.getElementById('outputArea');
+    const dataFormatSelect = document.getElementById('dataFormatSelect');
+    const formatDataBtn = document.getElementById('formatDataBtn');
 
     let debounceTimeout;
 
@@ -19,7 +25,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const formData = new FormData();
         formData.append('template', templateInput.value);
-        formData.append('data', dataInput.value || '{}');
+        formData.append('data', dataInput.value);
+        // Add whitespace control preferences
+        formData.append('trim_blocks', document.getElementById('trimBlocksToggle').checked);
+        formData.append('lstrip_blocks', document.getElementById('lstripBlocksToggle').checked);
 
         fetch('/render', {
             method: 'POST',
@@ -97,9 +106,90 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Function to detect data format
+    function detectDataFormat(content) {
+        try {
+            JSON.parse(content);
+            return 'json';
+        } catch (e) {
+            try {
+                jsYaml.load(content);
+                return 'yaml';
+            } catch (e) {
+                return null;
+            }
+        }
+    }
+
+    // Function to format data
+    function formatData(content, format) {
+        try {
+            let data;
+            if (format === 'json') {
+                // If input is YAML, convert to JSON
+                try {
+                    data = JSON.parse(content);
+                } catch {
+                    data = jsYaml.load(content);
+                }
+                return JSON.stringify(data, null, 2);
+            } else {
+                // If input is JSON, convert to YAML
+                try {
+                    data = JSON.parse(content);
+                } catch {
+                    data = jsYaml.load(content);
+                }
+                return jsYaml.dump(data, {
+                    indent: 2,
+                    lineWidth: -1,
+                    noRefs: true,
+                    sortKeys: true
+                });
+            }
+        } catch (e) {
+            throw new Error(`Invalid ${format.toUpperCase()} format: ${e.message}`);
+        }
+    }
+
+    // Format button click handler
+    formatDataBtn.addEventListener('click', function() {
+        const content = dataInput.value.trim();
+        if (!content) {
+            alert('No data to format');
+            return;
+        }
+
+        try {
+            const formattedContent = formatData(content, dataFormatSelect.value);
+            dataInput.value = formattedContent;
+        } catch (e) {
+            alert(e.message);
+        }
+    });
+
+    // Data format change handler
+    dataFormatSelect.addEventListener('change', function() {
+        const content = dataInput.value.trim();
+        if (!content) return;
+
+        try {
+            const formattedContent = formatData(content, this.value);
+            dataInput.value = formattedContent;
+        } catch (e) {
+            alert(`Failed to convert to ${this.value.toUpperCase()}: ${e.message}`);
+            // Revert selection
+            this.value = this.value === 'json' ? 'yaml' : 'json';
+        }
+    });
+
+    // Update file upload handler for data
     dataFile.addEventListener('change', function() {
         const file = this.files[0];
         if (file) {
+            const extension = file.name.toLowerCase().split('.').pop();
+            const format = extension === 'json' ? 'json' : 'yaml';
+            
             const formData = new FormData();
             formData.append('data_file', file);
 
@@ -112,14 +202,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.error) {
                     alert(data.error);
                 } else {
+                    dataFormatSelect.value = format;
                     dataInput.value = data.data_content;
-                    updateRenderedOutput(); // Trigger render after loading data
+                    updateRenderedOutput();
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('Failed to upload data file');
             });
+        }
+    });
+
+    // Update download data handler
+    document.getElementById('downloadDataBtn').addEventListener('click', function() {
+        let content = dataInput.value;
+        if (content.trim()) {
+            try {
+                const format = dataFormatSelect.value;
+                content = formatData(content, format);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const extension = format === 'json' ? 'json' : 'yml';
+                downloadFile(
+                    content,
+                    `data-${timestamp}.${extension}`,
+                    format === 'json' ? 'application/json' : 'application/x-yaml'
+                );
+            } catch (e) {
+                alert(`Invalid ${dataFormatSelect.value.toUpperCase()} data: ${e.message}`);
+            }
+        } else {
+            alert('No data content to download');
         }
     });
 
@@ -147,24 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
             downloadFile(content, `template-${timestamp}.j2`);
         } else {
             alert('No template content to download');
-        }
-    });
-
-    // Download data button handler
-    document.getElementById('downloadDataBtn').addEventListener('click', function() {
-        let content = dataInput.value;
-        if (content.trim()) {
-            try {
-                // Try to format JSON if it's valid
-                const jsonData = JSON.parse(content);
-                content = JSON.stringify(jsonData, null, 2);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                downloadFile(content, `data-${timestamp}.json`, 'application/json');
-            } catch (e) {
-                alert('Invalid JSON data');
-            }
-        } else {
-            alert('No data content to download');
         }
     });
 
@@ -204,4 +299,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+
+    // Add event listeners for the checkboxes
+    document.getElementById('trimBlocksToggle').addEventListener('change', debounceInput);
+    document.getElementById('lstripBlocksToggle').addEventListener('change', debounceInput);
 }); 

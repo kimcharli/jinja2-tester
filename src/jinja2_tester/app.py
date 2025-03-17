@@ -20,9 +20,12 @@ def is_allowed_template_file(filename):
 def is_allowed_data_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_DATA_EXTENSIONS
 
-def validate_template(template_str):
+def validate_template(template_str, trim_blocks=True, lstrip_blocks=True):
     try:
-        env = Environment()
+        env = Environment(
+            trim_blocks=trim_blocks,    # Removes first newline after a block
+            lstrip_blocks=lstrip_blocks # Strips tabs and spaces from the beginning of a line to the start of a block
+        )
         env.parse(template_str)
         return True, "Template syntax is valid"
     except exceptions.TemplateSyntaxError as e:
@@ -30,9 +33,12 @@ def validate_template(template_str):
     except Exception as e:
         return False, f"Error validating template: {str(e)}"
 
-def render_template_string(template_str, data):
+def render_template_string(template_str, data, trim_blocks=True, lstrip_blocks=True):
     try:
-        env = Environment()
+        env = Environment(
+            trim_blocks=trim_blocks,
+            lstrip_blocks=lstrip_blocks
+        )
         template = env.from_string(template_str)
         return True, template.render(**data)
     except Exception as e:
@@ -122,12 +128,14 @@ def upload_data():
         
         if ext in {'.json'}:
             data = json.loads(content)
+            formatted_content = json.dumps(data, indent=2)
         elif ext in {'.yaml', '.yml'}:
             data = yaml.safe_load(content)
+            formatted_content = yaml.dump(data, default_flow_style=False, sort_keys=True)
         else:
             return jsonify({'error': 'Unsupported file format'}), 400
         
-        return jsonify({'data_content': json.dumps(data, indent=2)})
+        return jsonify({'data_content': formatted_content})
     except Exception as e:
         return jsonify({'error': f'Error reading file: {str(e)}'}), 400
 
@@ -136,21 +144,27 @@ def render():
     try:
         template_str = request.form.get('template', '')
         data_str = request.form.get('data', '{}')
+        # Get whitespace control preferences, default to True
+        trim_blocks = request.form.get('trim_blocks', 'true').lower() == 'true'
+        lstrip_blocks = request.form.get('lstrip_blocks', 'true').lower() == 'true'
         
-        # Parse the JSON data
+        # Try parsing as JSON first, then YAML
         try:
             data = json.loads(data_str)
-        except json.JSONDecodeError as e:
-            return jsonify({
-                'is_valid': False,
-                'result': f'Invalid JSON data: {str(e)}',
-                'rendered_output': None
-            })
+        except json.JSONDecodeError:
+            try:
+                data = yaml.safe_load(data_str)
+            except yaml.YAMLError as e:
+                return jsonify({
+                    'is_valid': False,
+                    'result': f'Invalid data format: {str(e)}',
+                    'rendered_output': None
+                })
 
-        # Validate and render the template
-        is_valid, result = validate_template(template_str)
+        # Validate and render the template with whitespace control options
+        is_valid, result = validate_template(template_str, trim_blocks, lstrip_blocks)
         if is_valid:
-            success, rendered = render_template_string(template_str, data)
+            success, rendered = render_template_string(template_str, data, trim_blocks, lstrip_blocks)
             if success:
                 return jsonify({
                     'is_valid': True,

@@ -21,14 +21,33 @@
                     <textarea id="templateInput" name="template" placeholder="Enter your Jinja2 template here...">{{ template_input }}</textarea>
                 </div>
                 
+                <div class="whitespace-controls">
+                    <h4>Whitespace Control</h4>
+                    <div class="control-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="trimBlocksToggle" checked>
+                            <span class="checkbox-text">Trim Blocks (remove newlines after tags)</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="lstripBlocksToggle" checked>
+                            <span class="checkbox-text">Strip Blocks (remove leading whitespace)</span>
+                        </label>
+                    </div>
+                </div>
+                
                 <div class="input-section">
-                    <h3>Data Input (JSON)</h3>
+                    <h3>Data Input</h3>
                     <div class="input-controls">
+                        <select id="dataFormatSelect" class="format-select">
+                            <option value="json">JSON</option>
+                            <option value="yaml">YAML</option>
+                        </select>
+                        <button id="formatDataBtn" class="secondary-button">Format</button>
                         <button id="downloadDataBtn" class="secondary-button">Download</button>
                         <button id="uploadDataBtn" class="secondary-button">Upload</button>
                         <input type="file" id="dataFile" accept=".json,.yaml,.yml" style="display: none;">
                     </div>
-                    <textarea id="dataInput" name="data" placeholder="Enter test data as JSON (e.g., {'name': 'John'})">{{ data_input if data_input else '{}' }}</textarea>
+                    <textarea id="dataInput" name="data" placeholder="Enter data in JSON or YAML format...">{{ data_input if data_input else '{}' }}</textarea>
                 </div>
                 
                 <button id="validateBtn" class="primary-button">Validate and Render</button>

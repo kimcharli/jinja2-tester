@@ -38,20 +38,26 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    - Syntax highlighting (future enhancement)
    - Template persistence across form submissions
    - Jinja version selection (2.7 through 3.x)
+   - Whitespace control options:
+     - Manual control using `-` in delimiters
+     - Automatic trimming configuration
+     - Toggle buttons for trim_blocks/lstrip_blocks
 
 2. Data Input
-   - JSON format data input
-   - File upload support for JSON/YAML data
-   - File download with JSON formatting
-   - Data validation
-   - Error handling for malformed JSON
-   - Support for common data formats (JSON, YAML, CSV)
+   - Multiple format support (JSON/YAML)
+   - Format auto-detection
+   - Format conversion (JSON ↔ YAML)
+   - Real-time format validation
+   - Format-specific file handling
+   - Pretty formatting capability
+   - File upload/download with format preservation
 
 3. Template Processing
    - Syntax validation
    - Safe rendering
    - Sandboxed execution environment
    - Real-time preview
+   - Multi-format data support
 
 4. Output Display
    - Side-by-side rendered preview
@@ -143,6 +149,71 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    Output: text/plain
    ```
 
+### 4.4 Data Format Intelligence
+1. Format Selection
+   - Dropdown for format selection (JSON/YAML)
+   - Automatic format detection
+   - Format conversion on selection change
+   - Format validation feedback
+
+2. Format Processing
+   - JSON parsing and validation
+   - YAML parsing and validation
+   - Bidirectional conversion
+   - Pretty printing
+   - Error handling
+
+3. File Operations
+   - Format-specific file extensions
+   - Format detection from file extension
+   - Format-appropriate content-type
+   - Format preservation during download
+
+4. Format Features
+   ```text
+   JSON:
+   - Strict syntax validation
+   - Pretty printing with 2-space indent
+   - Standard JSON file extension
+   - application/json content type
+
+   YAML:
+   - Flexible syntax support
+   - 2-space indentation
+   - No reference aliases
+   - Sorted keys
+   - .yml/.yaml extensions
+   - application/x-yaml content type
+   ```
+
+### 4.5 Format Conversion Specifications
+1. JSON to YAML Conversion
+   ```javascript
+   {
+     indent: 2,
+     lineWidth: -1,
+     noRefs: true,
+     sortKeys: true
+   }
+   ```
+
+2. YAML to JSON Conversion
+   ```javascript
+   {
+     indent: 2,
+     preserveOrder: false
+   }
+   ```
+
+3. Format Detection Logic
+   ```javascript
+   function detectDataFormat(content) {
+     1. Try JSON.parse()
+     2. If fails, try YAML.load()
+     3. If both fail, return null
+   }
+   ```
+
 ## 5. Security Considerations
 
 ### 5.1 Input Validation
@@ -165,7 +236,9 @@ POST /
 - Input: 
   - template: str or file
   - data: JSON str or file
-  - jinja_version: str  # e.g., "2.7", "2.11.3", "3.0.3"
+  - jinja_version: str
+  - trim_blocks: bool  # New option
+  - lstrip_blocks: bool  # New option
 - Output:
   - result: str
   - is_valid: bool
@@ -232,6 +305,10 @@ class TemplateResponse:
   - File upload button with drag-and-drop support
   - Jinja version selector dropdown
   - Version compatibility indicator
+  - Whitespace control options:
+    - Trim blocks toggle
+    - Strip blocks toggle
+    - Visual indicator for active options
 - JSON data input section
   - Text area for direct input
   - File upload button with drag-and-drop support
@@ -285,6 +362,25 @@ class TemplateResponse:
    - Download button
    - Content availability check
    - Operation feedback
+
+### 8.7 Data Format UI
+1. Format Selector
+   - Dropdown component
+   - Current format indicator
+   - Format change handler
+   - Visual feedback on change
+
+2. Format Button
+   - Pretty print functionality
+   - Format-specific formatting
+   - Error feedback
+   - Loading state
+
+3. Visual Indicators
+   - Format validation status
+   - Conversion success/failure
+   - Format-specific styling
+   - Error messages
 
 ## 9. Future Enhancements
 
@@ -456,4 +552,57 @@ function downloadFile(content, filename, contentType) {
 
 This design document now includes comprehensive specifications for file operations, including download functionality for templates, data, and rendered output. The document covers UI components, error handling, security considerations, and implementation details.
 
-This design document provides a comprehensive guide for building and maintaining the Jinja2 Template Tester web application, with detailed specifications for both functionality and user interface. 
+This design document provides a comprehensive guide for building and maintaining the Jinja2 Template Tester web application, with detailed specifications for both functionality and user interface.
+
+## 17. Data Format Handling
+
+### 17.1 Backend Processing
+```python
+def process_data(content, format):
+    if format == 'json':
+        return json.loads(content)
+    else:
+        return yaml.safe_load(content)
+```
+
+### 17.2 Format Validation
+```python
+def validate_format(content, format):
+    try:
+        if format == 'json':
+            json.loads(content)
+        else:
+            yaml.safe_load(content)
+        return True, None
+    except Exception as e:
+        return False, str(e)
+```
+
+### 17.3 Format Conversion
+```python
+def convert_format(data, target_format):
+    if target_format == 'json':
+        return json.dumps(data, indent=2)
+    else:
+        return yaml.dump(
+            data,
+            default_flow_style=False,
+            sort_keys=True,
+            indent=2
+        )
+```
+
+### 17.4 Error Handling
+1. Validation Errors
+   - Invalid syntax
+   - Unsupported types
+   - Conversion failures
+   - File format mismatches
+
+2. User Feedback
+   - Clear error messages
+   - Format-specific hints
+   - Conversion status
+   - Recovery suggestions
+
+This design document now includes comprehensive specifications for data format intelligence, including format detection, conversion, validation, and error handling. The document covers both frontend and backend implementations, UI components, and user interaction patterns. 
