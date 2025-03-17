@@ -202,9 +202,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.error) {
                     alert(data.error);
                 } else {
+                    // Update format selector and data input
                     dataFormatSelect.value = format;
                     dataInput.value = data.data_content;
+                    // Force a render update
                     updateRenderedOutput();
+                    // Clear the file input
+                    dataFile.value = '';
                 }
             })
             .catch(error => {

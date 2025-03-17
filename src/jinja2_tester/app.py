@@ -49,17 +49,29 @@ def index():
     if request.method == 'POST':
         template_input = request.form.get('template', '')
         data_input = request.form.get('data', '{}')
+        trim_blocks = request.form.get('trim_blocks', 'true').lower() == 'true'
+        lstrip_blocks = request.form.get('lstrip_blocks', 'true').lower() == 'true'
         
         # Validate template
-        is_valid, result = validate_template(template_input)
+        is_valid, result = validate_template(template_input, trim_blocks, lstrip_blocks)
         
         if is_valid:
             try:
-                # Parse data
-                data = json.loads(data_input)
+                # Try parsing as JSON first, then YAML
+                try:
+                    data = json.loads(data_input)
+                except json.JSONDecodeError:
+                    try:
+                        data = yaml.safe_load(data_input)
+                    except yaml.YAMLError as e:
+                        return render_template('index.html',
+                                            template_input=template_input,
+                                            data_input=data_input,
+                                            is_valid=False,
+                                            result=f"Invalid data format: {str(e)}")
                 
                 # Render template
-                success, rendered = render_template_string(template_input, data)
+                success, rendered = render_template_string(template_input, data, trim_blocks, lstrip_blocks)
                 if success:
                     return render_template('index.html',
                                          template_input=template_input,
@@ -73,12 +85,12 @@ def index():
                                          data_input=data_input,
                                          is_valid=False,
                                          result=rendered)
-            except json.JSONDecodeError as e:
+            except Exception as e:
                 return render_template('index.html',
                                      template_input=template_input,
                                      data_input=data_input,
                                      is_valid=False,
-                                     result=f"Invalid JSON data: {str(e)}")
+                                     result=f"Error: {str(e)}")
         else:
             return render_template('index.html',
                                  template_input=template_input,
