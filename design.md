@@ -1,9 +1,11 @@
 # Jinja2 Template Tester - Design Document
 
 ## 1. Overview
+
 The Jinja2 Template Tester is a web application that allows users to validate and test Jinja2 templates in real-time. Users can input template code and test data to see how their templates will render.
 
 ## 2. Objectives
+
 - Provide a user-friendly interface for testing Jinja2 templates
 - Validate template syntax
 - Allow users to input test data in JSON format
@@ -14,6 +16,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
 ## 3. Technical Requirements
 
 ### 3.1 Backend Requirements
+
 - Python 3.8+
 - Flask web framework
 - Jinja2 templating engine
@@ -21,6 +24,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
 - Error handling middleware
 
 ### 3.2 Frontend Requirements
+
 - HTML5
 - CSS3
 - Responsive design
@@ -31,6 +35,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
 ## 4. Features
 
 ### 4.1 Core Features
+
 1. Template Input
    - Multi-line text area for Jinja2 template code
    - File upload support for templates
@@ -67,6 +72,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    - Output download functionality
 
 ### 4.2 UI Layout
+
 1. Main Container
    - Maximum width: 1400px
    - White background
@@ -94,6 +100,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    - Pre-formatted text display
 
 ### 4.3 Styling
+
 1. Color Scheme
    - Primary button: #007bff
    - Secondary button: #6c757d
@@ -122,6 +129,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    - Maintain padding and spacing
 
 ### 4.4 File Operations
+
 1. Download Features
    - Template download as .j2 files
    - Data download as formatted JSON
@@ -136,6 +144,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    - Error handling for invalid files
 
 3. File Naming Convention
+
    ```text
    Templates: template-{timestamp}.j2
    Data: data-{timestamp}.json
@@ -143,6 +152,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    ```
 
 4. Content Types
+
    ```text
    Templates: text/plain
    Data: application/json
@@ -150,6 +160,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    ```
 
 ### 4.4 Data Format Intelligence
+
 1. Format Selection
    - Dropdown for format selection (JSON/YAML)
    - Automatic format detection
@@ -170,6 +181,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    - Format preservation during download
 
 4. Format Features
+
    ```text
    JSON:
    - Strict syntax validation
@@ -187,7 +199,9 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    ```
 
 ### 4.5 Format Conversion Specifications
+
 1. JSON to YAML Conversion
+
    ```javascript
    {
      indent: 2,
@@ -198,6 +212,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    ```
 
 2. YAML to JSON Conversion
+
    ```javascript
    {
      indent: 2,
@@ -206,6 +221,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
    ```
 
 3. Format Detection Logic
+
    ```javascript
    function detectDataFormat(content) {
      1. Try JSON.parse()
@@ -217,12 +233,14 @@ The Jinja2 Template Tester is a web application that allows users to validate an
 ## 5. Security Considerations
 
 ### 5.1 Input Validation
+
 - Sanitize all user inputs
 - Limit template size
 - Validate JSON data structure
 - Implement CSRF protection
 
 ### 5.2 Template Execution
+
 - Sandbox environment for template rendering
 - Restricted access to system functions
 - Timeout limits for template execution
@@ -230,6 +248,7 @@ The Jinja2 Template Tester is a web application that allows users to validate an
 ## 6. API Design
 
 ### 6.1 Routes
+
 ```python
 POST /
 - Purpose: Process template and data
@@ -263,12 +282,14 @@ POST /upload-data
 ```
 
 ### 6.2 File Upload Specifications
+
 - Supported template extensions: .j2, .jinja, .jinja2, .html, .txt
 - Supported data file extensions: .json, .yaml, .yml, .csv
 - Maximum file size: 5MB
 - File content validation before processing
 
 ### 6.3 Supported Jinja Versions
+
 - Jinja 2.7.x (Legacy)
 - Jinja 2.8.x
 - Jinja 2.9.x
@@ -280,6 +301,7 @@ POST /upload-data
 ## 7. Data Models
 
 ### 7.1 Template Request
+
 ```python
 class TemplateRequest:
     template: str
@@ -288,6 +310,7 @@ class TemplateRequest:
 ```
 
 ### 7.2 Template Response
+
 ```python
 class TemplateResponse:
     is_valid: bool
@@ -299,6 +322,7 @@ class TemplateResponse:
 ## 8. User Interface
 
 ### 8.1 Layout Components
+
 - Header with application title
 - Template input section
   - Text area for direct input
@@ -318,6 +342,7 @@ class TemplateResponse:
 - Rendered output section
 
 ### 8.2 Error Handling
+
 - Visual feedback for validation errors
 - Clear error messages
 - Distinct styling for success/error states
@@ -327,12 +352,14 @@ class TemplateResponse:
   - File content validation errors
 
 ### 8.3 File Operation Controls
+
 - Download buttons for each section
 - Upload buttons for inputs
 - Visual feedback for operations
 - Error messages for invalid operations
 
 ### 8.5 Button Specifications
+
 1. Primary Button
    - Validate and Render action
    - Full width
@@ -346,6 +373,7 @@ class TemplateResponse:
    - Gap spacing between buttons
 
 ### 8.6 File Operation UI
+
 1. Template Section
    - Download button
    - Upload button
@@ -364,6 +392,7 @@ class TemplateResponse:
    - Operation feedback
 
 ### 8.7 Data Format UI
+
 1. Format Selector
    - Dropdown component
    - Current format indicator
@@ -385,6 +414,7 @@ class TemplateResponse:
 ## 9. Future Enhancements
 
 ### 9.1 Planned Features
+
 1. Syntax highlighting for template input
 2. Template saving and sharing
 3. Common template examples
@@ -393,6 +423,7 @@ class TemplateResponse:
 6. Template performance metrics
 
 ### 9.2 Technical Improvements
+
 1. API endpoint for programmatic access
 2. Template caching
 3. User accounts for saving templates
@@ -402,12 +433,14 @@ class TemplateResponse:
 ## 10. Testing Strategy
 
 ### 10.1 Unit Tests
+
 - Template parsing
 - JSON validation
 - Error handling
 - Security measures
 
 ### 10.2 Integration Tests
+
 - Form submission
 - Template rendering
 - Error reporting
@@ -416,6 +449,7 @@ class TemplateResponse:
 ## 11. Deployment
 
 ### 11.1 Requirements
+
 - Python environment
 - Web server (e.g., Gunicorn)
 - Reverse proxy (e.g., Nginx)
@@ -424,6 +458,7 @@ class TemplateResponse:
 - Multiple Jinja versions installed in isolated environments
 
 ### 11.2 Environment Variables
+
 ```text
 FLASK_ENV=production
 SECRET_KEY=<secure-key>
@@ -438,6 +473,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 ```
 
 ### 11.3 Version Management
+
 - Docker containers for each Jinja version
 - Virtual environments for version isolation
 - Version compatibility matrix
@@ -447,6 +483,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 ## 12. Maintenance
 
 ### 12.1 Monitoring
+
 - Error logging
 - Usage metrics
 - Performance monitoring
@@ -454,6 +491,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 - Version usage statistics
 
 ### 12.2 Updates
+
 - Regular security patches
 - Dependency updates
 - Feature additions
@@ -464,6 +502,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 ## 13. UI Components Specification
 
 ### 13.1 HTML Structure
+
 ```html
 <div class="main-container">
     <h1>Title</h1>
@@ -479,6 +518,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 ```
 
 ### 13.2 CSS Architecture
+
 - Mobile-first approach
 - Flexbox layout system
 - BEM naming convention
@@ -487,6 +527,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 - Component-based organization
 
 ### 13.3 Interactive Elements
+
 - File upload buttons
 - Validation button
 - Real-time preview
@@ -497,6 +538,7 @@ SUPPORTED_JINJA_VERSIONS=2.7.3,2.8.1,2.9.6,2.10.3,2.11.3,3.0.3,3.1.2
 ## 16. File Operations Specification
 
 ### 16.1 Download Operations
+
 ```javascript
 function downloadFile(content, filename, contentType) {
     // Create blob from content
@@ -507,6 +549,7 @@ function downloadFile(content, filename, contentType) {
 ```
 
 ### 16.2 Content Validation
+
 1. Template Download
    - Non-empty content check
    - File extension: .j2
@@ -526,6 +569,7 @@ function downloadFile(content, filename, contentType) {
    - Content type: text/plain
 
 ### 16.3 Error Handling
+
 1. Download Errors
    - Empty content validation
    - Invalid JSON formatting
@@ -539,6 +583,7 @@ function downloadFile(content, filename, contentType) {
    - User feedback messages
 
 ### 16.4 Security Considerations
+
 1. Download Security
    - Content sanitization
    - File type verification
@@ -557,6 +602,7 @@ This design document provides a comprehensive guide for building and maintaining
 ## 17. Data Format Handling
 
 ### 17.1 Backend Processing
+
 ```python
 def process_data(content, format):
     if format == 'json':
@@ -566,6 +612,7 @@ def process_data(content, format):
 ```
 
 ### 17.2 Format Validation
+
 ```python
 def validate_format(content, format):
     try:
@@ -579,6 +626,7 @@ def validate_format(content, format):
 ```
 
 ### 17.3 Format Conversion
+
 ```python
 def convert_format(data, target_format):
     if target_format == 'json':
@@ -593,6 +641,7 @@ def convert_format(data, target_format):
 ```
 
 ### 17.4 Error Handling
+
 1. Validation Errors
    - Invalid syntax
    - Unsupported types
@@ -605,4 +654,4 @@ def convert_format(data, target_format):
    - Conversion status
    - Recovery suggestions
 
-This design document now includes comprehensive specifications for data format intelligence, including format detection, conversion, validation, and error handling. The document covers both frontend and backend implementations, UI components, and user interaction patterns. 
+This design document now includes comprehensive specifications for data format intelligence, including format detection, conversion, validation, and error handling. The document covers both frontend and backend implementations, UI components, and user interaction patterns.

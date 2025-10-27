@@ -18,20 +18,22 @@ A web application for testing and validating Jinja2 templates with support for m
 ## Project Setup
 
 1. Install `uv` if you haven't already:
+
 ```bash
 pip install uv
 ```
 
 2. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd jinja2-tester
 ```
 
-
 ## Running the Application
 
 Start the Flask development server using `uv`:
+
 ```bash
 uv run jinja2_tester
 ```
@@ -43,6 +45,7 @@ The application will be available at `http://localhost:5000`
 ## Environment Variables
 
 Create a `.env` file in the project root with the following variables:
+
 ```text
 FLASK_ENV=development
 SECRET_KEY=your-secret-key-here
@@ -62,6 +65,7 @@ EXECUTION_TIMEOUT=5
 ## Supported File Types
 
 ### Templates
+
 - `.j2`
 - `.jinja`
 - `.jinja2`
@@ -69,6 +73,7 @@ EXECUTION_TIMEOUT=5
 - `.txt`
 
 ### Data
+
 - `.json`
 - `.yaml`
 - `.yml`
@@ -78,16 +83,19 @@ EXECUTION_TIMEOUT=5
 To contribute to the project:
 
 1. Create a new branch:
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
 
 2. Make your changes and commit them:
+
 ```bash
 git commit -m "Add your feature description"
 ```
 
 3. Push to your branch:
+
 ```bash
 git push origin feature/your-feature-name
 ```
