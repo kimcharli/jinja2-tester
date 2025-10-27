@@ -28,24 +28,12 @@ git clone <repository-url>
 cd jinja2-tester
 ```
 
-3. Create and activate a virtual environment using `uv`:
-```bash
-uv venv
-source .venv/bin/activate  # On Unix/macOS
-# or
-.venv\Scripts\activate    # On Windows
-```
-
-4. Install dependencies using `uv`:
-```bash
-uv pip install -e .
-```
 
 ## Running the Application
 
 Start the Flask development server using `uv`:
 ```bash
-uv run src/jinja2_tester/app.py
+uv run jinja2_tester
 ```
 
 The application will be available at `http://localhost:5000`
