@@ -1,0 +1,13 @@
+{#
+Remove RSTP of the target interfaces under the [edit protocols rstp] hierarchy.
+
+To remove RSTP, attach the tag NO_RSTP_TAG to the target interfaces, links, or generic systems. New versions inherit gs tags, but old versions did not.
+#}
+{% set NO_RSTP_TAG = "no-rstp" %}
+{% set intfs_to_remove = {} %}
+{% for intf in interface.values()|selectattr('tags') %}{# begin tagged interfaces #}
+{% set _ = NO_RSTP_TAG in intf.tags and intfs_to_remove.__setitem__(intf.part_of or intf.intfName, '') %}
+{% endfor %}{# end tagged interfaces #}
+{% for intf in intfs_to_remove.keys() %}{# finally render the configuration #}
+delete protocols rstp interface {{ intf }}
+{% endfor %}

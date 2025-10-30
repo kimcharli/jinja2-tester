@@ -1,0 +1,39 @@
+{# mirror the interface using analyzer with intf_tags 'mirror' #}
+{# property sets #}
+{% set collector_ip = '192.168.0.2' %}
+{% set mirror_tag = 'mirror' %}
+{# build variables for the script #}
+{% set mirrored_interfaces = [] %}
+{% for intf in interface.values() %}
+{% if 'tags' in intf and mirror_tag in intf['tags'] %}
+{% if intf['part_of'] == '' %}
+{% set mirrored_interfaces = mirrored_interfaces.append(intf['intfName']) %}
+{% else %}
+{% set mirrored_interfaces = mirrored_interfaces.append(intf['part_of']) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{# scripts starts here #}
+{% if mirrored_interfaces|length %}
+forwarding-options {
+    analyzer {
+        mirro1 {
+            input {
+                ingress {
+{% for intf in mirrored_interfaces %}
+                    interface {{ intf }}.0;
+{% endfor %}
+                }
+                egress {
+{% for intf in mirrored_interfaces %}
+                    interface {{ intf }}.0;
+{% endfor %}
+                }
+            }
+            output {
+                ip-address {{ collector_ip }};
+            }
+        }
+    }    
+}
+{% endif %}
