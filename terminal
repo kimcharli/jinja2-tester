@@ -1,2 +1,0 @@
-mkdir -p jinja2-tester/{templates,static,data}
-cd jinja2-tester 
