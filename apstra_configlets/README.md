@@ -1,10 +1,12 @@
 # Configlets
 
-These configlets were originally located in https://github.com/kimcharli/ck-apstra-api/tree/main/docs/configlets and have been moved here for better coherency within this project.
+<!-- markdownlint-disable-next-line MD013 -->
+These configlets were originally located in <https://github.com/kimcharli/ck-apstra-api/tree/main/docs/configlets> and have been moved here for better coherency within this project.
 
+<!-- markdownlint-disable-next-line MD013 -->
 This project includes a collection of configlets to perform various network configurations. They are categorized as follows:
 
-### Essential (Always)
+## Essential (Always)
 
 These configlets are considered essential for basic operation.
 
@@ -14,20 +16,20 @@ These configlets are considered essential for basic operation.
 - `re-protect.j2`
 - `loop-detect.j2`
 
-### Essential (In Certain Cases)
+## Essential (In Certain Cases)
 
 These configlets are essential under specific circumstances.
 
 - `evpn-gw-bfd.j2`: Essential for EVPN GW deployments.
 
-### Optional
+## Optional
 
 These configlets provide optional functionality.
 
 - `device-licenses.j2`
 - `analyzer.j2`
 
-### Miscellaneous
+## Miscellaneous
 
 This category includes other configlets for various purposes.
 
