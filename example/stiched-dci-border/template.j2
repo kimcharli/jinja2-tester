@@ -82,12 +82,12 @@ routing-instances {
 policy-options {
 {% for i_vrf in interconnect.vrf %}{# router_filter #}
 {% set VRF_NAME = i_vrf.name %}
-    route-filter-list EVPN_DCI_L3_IN-{{ VRF_NAME }}-RP-DCI-VRF-{{ VRF_NAME }} {
+    route-filter-list EVPN_DCI_L3_IN-{{ VRF_NAME }} {
 {% for i_filter in i_vrf.in_route_filter %}
         {{ i_filter }};
 {% endfor %}
     }
-    route-filter-list EVPN_DCI_L3_OUT-{{ VRF_NAME }}-RP-DCI-VRF-{{ VRF_NAME }} {
+    route-filter-list EVPN_DCI_L3_OUT-{{ VRF_NAME }} {
 {% for i_filter in i_vrf.out_route_filter %}
         {{ i_filter }};
 {% endfor %}
@@ -100,57 +100,53 @@ policy-options {
                 community EVPN_DCI_L2_TARGET;
             }
             then {
-                community add EVPN_GW_IN;
-                community add NO_ADVERTISE;
                 accept;
             }
         }
-        term EVPN_GW_IN-40 {
+{% set vars = namespace(TERM_NUMBER = 20) %}
+{% for i_vrf in interconnect.vrf %}
+        term EVPN_GW_IN-{{ vars.TERM_NUMBER }} {
             from {
                 family evpn;
-                community EVPN_DCI_L3_TARGET_DC-LNX;
-                route-filter-list EVPN_DCI_L3_IN-DC-LNX-RP-DCI-VRF-DC-LNX;
+                community EVPN_DCI_L3_TARGET_{{ i_vrf.name }};
+                route-filter-list EVPN_DCI_L3_IN-{{ i_vrf.name }};
             }
             then {
-                community add EVPN_GW_IN;
                 accept;
             }
         }
-        term EVPN_GW_IN-50 {
+{% set vars.TERM_NUMBER = vars.TERM_NUMBER + 10 %}
+{% endfor %}
+        term EVPN_GW_IN-{{ vars.TERM_NUMBER }} {
             from family evpn;
             then reject;
         }
     }
     policy-statement EVPN_GW_OUT {
-        term EVPN_GW_OUT-10 {
-            from {
-                family evpn;
-                community EVPN_GW_OUT;
-            }
-            then reject;
-        }
         term EVPN_GW_OUT-20 {
             from {
                 family evpn;
                 community EVPN_DCI_L2_TARGET;
             }
             then {
-                community delete FABRIC_COMMUNITIES;
                 accept;
             }
         }
-        term EVPN_GW_OUT-50 {
+{% set vars = namespace(TERM_NUMBER = 20) %}
+{% for i_vrf in interconnect.vrf %}
+        term EVPN_GW_OUT-{{ vars.TERM_NUMBER }} {
             from {
                 family evpn;
-                community EVPN_DCI_L3_TARGET_DC-LNX;
-                route-filter-list EVPN_DCI_L3_OUT-DC-LNX-RP-DCI-VRF-DC-LNX;
-            }                           
-            then {                      
-                community delete FABRIC_COMMUNITIES;
-                accept;                 
-            }                           
-        }                               
-        term EVPN_GW_OUT-60 {           
+                community EVPN_DCI_L3_TARGET_{{ i_vrf.name }};
+                route-filter-list EVPN_DCI_L3_OUT-{{ i_vrf.name }};
+            }
+            then {
+                accept;
+            }
+        }
+{% set vars.TERM_NUMBER = vars.TERM_NUMBER + 10 %}
+{% endfor %}
+        term EVPN_GW_IN-{{ vars.TERM_NUMBER }} {
             from family evpn;           
             then reject;                
         }                               

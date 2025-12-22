@@ -1,0 +1,48 @@
+this_leaf:
+  name: border_1
+  lo0_ipv4: 10.1.0.14
+  asn: 4200000013
+interconnect:
+  domain_name: DCI
+  i_RT: 8888:8888
+  i_ESI: 04:ff:00:00:00:01
+  gateways:
+    local:
+      - name: border_1
+        i_RD: 65533
+      - name: border_2
+        i_RD: 65533
+    remote:
+      - name: dci-1
+        ip: 10.10.10.1
+        connected to: [ border_1 border_2 ]
+        ASN: 8881
+        TTL: 30
+        evpn_route_types: all
+      - name: dci-2
+        ip: 10.10.10.2
+        connected to: [ border_1 border_2 ]
+        ASN: 8882
+        TTL: 30
+        evpn_route_types: all
+  vrf:
+    - name: FIS
+      T5_enabled: yes
+      routing_policy: dci-FIS
+      i_RT: 8888:4011
+  vlan:
+    - vn: vn101
+      routing_zone: vrf-X
+      T5_enabled: No
+      T2_enabled: yes
+      vni: 200101
+      i_vni: 880101
+    - vn: vn105
+      routing_zone: dh50
+      T5_enabled: No
+      T2_enabled: yes
+      vni: 200105
+      i_vni: 880105
+
+
+
