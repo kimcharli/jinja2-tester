@@ -4,11 +4,9 @@
         {{ i_filter }};
 {% endfor %}
     }
-{% endmacro %}
+{%- endmacro -%}
 
-
-{% set gw_local = interconnect.gateways.local | selectattr('name', 'eq', this_leaf.name )|first %}
-{{ gw_local }}
+{%- set gw_local = interconnect.gateways.local | selectattr('name', 'eq', this_leaf.name )|first %}
 {% if gw_local %}{# gw_local #}
 routing-instances {
 {% for i_VRF in interconnect.vrf %}{# i_VRF #}
@@ -93,7 +91,7 @@ policy-options {
 {% set VRF_NAME = i_vrf.name %}
 {{ route_filter_list('EVPN_DCI_L3_IN-' ~ VRF_NAME, i_vrf.in_route_filter) }}
 {{ route_filter_list('EVPN_DCI_L3_OUT-' ~ VRF_NAME, i_vrf.out_route_filter) }}
-{% endfor %}{# router_filter #}
+{%- endfor -%}{# router_filter #}
 
     policy-statement EVPN_GW_IN {
         term EVPN_GW_IN-10 {
