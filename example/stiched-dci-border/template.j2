@@ -1,0 +1,193 @@
+{% set gw_local = interconnect.gateways.local | selectattr('name', 'eq', this_leaf.name )|first %}
+{{ gw_local }}
+{% if gw_local %}{# gw_local #}
+routing-instances {
+{% for i_VRF in interconnect.vrf %}{# i_VRF #}
+    {{ i_VRF.name }} {
+#        instance-type vrf;
+#        interface irb.333;
+#        interface lo0.9;
+#        route-distinguisher 10.1.0.14:4011;
+#        vrf-target target:504011L:1;
+#        routing-options {
+#            multipath;
+#            auto-export;
+#        }
+        protocols {
+            evpn {
+                interconnect {
+                    vrf-target target:{{ i_VRF.i_RT }};
+                    route-distinguisher {{ gw_local.lo0_ipv4}}:61522;
+                }
+#                ip-prefix-routes {
+#                    advertise direct-nexthop;
+#                    encapsulation vxlan;
+#                    vni 504011;
+#                    export BGP-AOS-Policy-FIS;
+#                }
+#                irb-symmetric-routing {
+#                    vni 504011;
+#                }
+            }
+        }
+    }
+{% endfor %}{# i_VRF #}
+    evpn-1 {
+#        instance-type mac-vrf;
+        protocols {
+            evpn {
+                interconnect {
+                    vrf-target target:{{ interconnect.i_RT }};
+                    route-distinguisher {{ this_leaf.lo0_ipv4 }}:{{ gw_local.i_RD }};
+                    esi {
+                        00:{{ interconnect.i_ESI }}:00:00:01;
+                        all-active;
+                    }
+                    interconnected-vni-list [ {{ interconnect.vlan | map(attribute='i_vni') | join(' ') }} ];
+                }
+#                vni-options {
+#                    vni 20001 {
+#                        vrf-target target:20001:1;
+#                    }
+#                }
+#                encapsulation vxlan;
+#                default-gateway do-not-advertise;
+#                duplicate-mac-detection {
+#                    auto-recovery-time 9;
+#                }
+#                extended-vni-list all;
+            }
+        }
+#        vtep-source-interface lo0.0;
+#        service-type vlan-aware;
+#        route-distinguisher 10.1.0.14:65534;
+#        vrf-target target:100:100;
+        vlans {
+{% for i_vlan in interconnect.vlan %}{# i_vlan #}
+{% if i_vlan.T2_enabled %}
+            {{ i_vlan.name }} {
+#                vlan-id 10;
+#                description "VLAN10";
+                vxlan {
+#                    vni 20001;
+                    translation-vni {{ i_vlan.i_vni }}; 
+                }
+#                l3-interface irb.10;
+            }
+{% endif %}
+{% endfor %}{# i_vlan #}
+        }
+    }
+}
+policy-options {
+{% for i_vrf in interconnect.vrf %}{# router_filter #}
+{% set VRF_NAME = i_vrf.name %}
+    route-filter-list EVPN_DCI_L3_IN-{{ VRF_NAME }}-RP-DCI-VRF-{{ VRF_NAME }} {
+{% for i_filter in i_vrf.in_route_filter %}
+        {{ i_filter }};
+{% endfor %}
+    }
+    route-filter-list EVPN_DCI_L3_OUT-{{ VRF_NAME }}-RP-DCI-VRF-{{ VRF_NAME }} {
+{% for i_filter in i_vrf.out_route_filter %}
+        {{ i_filter }};
+{% endfor %}
+    }
+{% endfor %}{# router_filter #}
+    policy-statement EVPN_GW_IN {
+        term EVPN_GW_IN-10 {
+            from {
+                family evpn;
+                community EVPN_DCI_L2_TARGET;
+            }
+            then {
+                community add EVPN_GW_IN;
+                community add NO_ADVERTISE;
+                accept;
+            }
+        }
+        term EVPN_GW_IN-40 {
+            from {
+                family evpn;
+                community EVPN_DCI_L3_TARGET_DC-LNX;
+                route-filter-list EVPN_DCI_L3_IN-DC-LNX-RP-DCI-VRF-DC-LNX;
+            }
+            then {
+                community add EVPN_GW_IN;
+                accept;
+            }
+        }
+        term EVPN_GW_IN-50 {
+            from family evpn;
+            then reject;
+        }
+    }
+    policy-statement EVPN_GW_OUT {
+        term EVPN_GW_OUT-10 {
+            from {
+                family evpn;
+                community EVPN_GW_OUT;
+            }
+            then reject;
+        }
+        term EVPN_GW_OUT-20 {
+            from {
+                family evpn;
+                community EVPN_DCI_L2_TARGET;
+            }
+            then {
+                community delete FABRIC_COMMUNITIES;
+                accept;
+            }
+        }
+        term EVPN_GW_OUT-50 {
+            from {
+                family evpn;
+                community EVPN_DCI_L3_TARGET_DC-LNX;
+                route-filter-list EVPN_DCI_L3_OUT-DC-LNX-RP-DCI-VRF-DC-LNX;
+            }                           
+            then {                      
+                community delete FABRIC_COMMUNITIES;
+                accept;                 
+            }                           
+        }                               
+        term EVPN_GW_OUT-60 {           
+            from family evpn;           
+            then reject;                
+        }                               
+    }   
+    policy-statement LEAF_TO_SPINE_EVPN_OUT {
+#        term LEAF_TO_SPINE_EVPN_OUT-10 {
+#            from {
+#                protocol bgp;
+#                community FROM_SPINE_EVPN_TIER;
+#            }
+#            then reject;
+#        }
+#        term LEAF_TO_SPINE_EVPN_OUT-20 {
+#            from {
+#                protocol [ bgp evpn ];
+#                community FABRIC_EVI_TARGET;
+#            }
+#            then accept;
+#        }
+        term LEAF_TO_SPINE_EVPN_OUT-30 {
+            from {
+                protocol [ bgp evpn ];
+{% set i_vrf_communities = [] %}
+{% for i_vrf in interconnect.vrf %}
+{% set _ = i_vrf_communities.append('EVPN_DCI_L3_TARGET_' ~ i_vrf.name) %}
+{% endfor %}
+                community [ EVPN_DCI_L2_TARGET {{ i_vrf_communities | join(' ') }} ];
+            }
+            then reject;
+        }                               
+#        term LEAF_TO_SPINE_EVPN_OUT-40 {
+#            then accept;                
+#        }                               
+    }      
+    community EVPN_DCI_L2_TARGET members target:{{ interconnect.i_RT }};
+{% for i_vrf in interconnect.vrf %}
+    community EVPN_DCI_L3_TARGET_{{ i_vrf.name }} members target:{{ i_vrf.i_RT }};
+{% endfor %}
+}
+{% endif %}{# gw_local #}

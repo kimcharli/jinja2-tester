@@ -1,0 +1,52 @@
+this_leaf:
+  name: DC1-LAB-JQFX5K-BL-01
+  lo0_ipv4: 192.168.0.1
+  asn: 65001
+interconnect:
+  domain_name: DC1-DC2-iCD
+  i_RT: 200:200
+  i_ESI: 02:ff:00:00:00:01
+  gateways:
+    local:
+      - name: DC1-LAB-JQFX5K-BL-01
+        i_RD: 65533
+      - name: border_2
+        i_RD: 65533
+    remote:
+      - name: DC2-BORDER-LEAF-01
+        ip: 192.168.2.1
+        connected to: [ DC1-LAB-JQFX5K-BL-01 ]
+        ASN: 65201
+        TTL: 5
+        evpn_route_types: all
+      - name: dci-2
+        ip: 10.10.10.2
+        connected to: [ border_1 border_2 ]
+        ASN: 8882
+        TTL: 30
+        evpn_route_types: all
+  vrf:
+    - name: DC-LNX
+      T5_enabled: yes
+      routing_policy: RP-DCI-VRF-DC-LNX
+      i_RT: 700:700
+      out_route_filter:
+        - 10.10.120.0/24 exact
+      in_route_filter:
+        - 10.10.125.0/24 exact
+  vlan:
+    - vn: VLAN10
+      routing_zone: DC-WIN
+      T5_enabled: No
+      T2_enabled: yes
+      vni: 20001
+      i_vni: 32000
+    - vn: VLAN20
+      routing_zone: DC-LNX
+      T5_enabled: No
+      T2_enabled: No
+      vni: 20003
+      i_vni: 
+
+
+
