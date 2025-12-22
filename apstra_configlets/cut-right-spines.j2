@@ -1,9 +1,10 @@
 {# TAG spines with 'left-spine' or 'right-spine' #}
+{% set RIGHT_SPINE_TAG = 'right-spine' %}
 {# assign this configlet to left side leaf #}
 groups cut-right-spine {
     interfaces {
 {% for _, intf_data in interface.items() %}
-{% if 'right-spine' in intf_data.tags  %}
+{% if RIGHT_SPINE_TAG in intf_data.tags  %}
         {{ intf_data.intfName }} disable;
 {% endif %}
 {% endfor %}
