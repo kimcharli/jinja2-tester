@@ -1,3 +1,12 @@
+{% macro route_filter_list(name, prefixes) %}
+    route-filter-list {{ name }} {
+{% for i_filter in prefixes %}
+        {{ i_filter }};
+{% endfor %}
+    }
+{% endmacro %}
+
+
 {% set gw_local = interconnect.gateways.local | selectattr('name', 'eq', this_leaf.name )|first %}
 {{ gw_local }}
 {% if gw_local %}{# gw_local #}
@@ -82,17 +91,10 @@ routing-instances {
 policy-options {
 {% for i_vrf in interconnect.vrf %}{# router_filter #}
 {% set VRF_NAME = i_vrf.name %}
-    route-filter-list EVPN_DCI_L3_IN-{{ VRF_NAME }} {
-{% for i_filter in i_vrf.in_route_filter %}
-        {{ i_filter }};
-{% endfor %}
-    }
-    route-filter-list EVPN_DCI_L3_OUT-{{ VRF_NAME }} {
-{% for i_filter in i_vrf.out_route_filter %}
-        {{ i_filter }};
-{% endfor %}
-    }
+{{ route_filter_list('EVPN_DCI_L3_IN-' ~ VRF_NAME, i_vrf.in_route_filter) }}
+{{ route_filter_list('EVPN_DCI_L3_OUT-' ~ VRF_NAME, i_vrf.out_route_filter) }}
 {% endfor %}{# router_filter #}
+
     policy-statement EVPN_GW_IN {
         term EVPN_GW_IN-10 {
             from {
