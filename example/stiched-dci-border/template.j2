@@ -169,11 +169,11 @@ policy-options {
         term LEAF_TO_SPINE_EVPN_OUT-30 {
             from {
                 protocol [ bgp evpn ];
-{% set i_vrf_communities = [] %}
-{% for i_vrf in interconnect.vrf %}
-{% set _ = i_vrf_communities.append('EVPN_DCI_L3_TARGET_' ~ i_vrf.name) %}
-{% endfor %}
-                community [ EVPN_DCI_L2_TARGET {{ i_vrf_communities | join(' ') }} ];
+                community [ EVPN_DCI_L2_TARGET 
+{%- for i_vrf in interconnect.vrf -%}
+{{ ' ' }}EVPN_DCI_L3_TARGET_{{ i_vrf.name }}
+{%- endfor -%}
+ ];
             }
             then reject;
         }                               
