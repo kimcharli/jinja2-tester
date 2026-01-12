@@ -24,7 +24,8 @@ def validate_template(template_str, trim_blocks=True, lstrip_blocks=True):
     try:
         env = Environment(
             trim_blocks=trim_blocks,    # Removes first newline after a block
-            lstrip_blocks=lstrip_blocks # Strips tabs and spaces from the beginning of a line to the start of a block
+            lstrip_blocks=lstrip_blocks, # Strips tabs and spaces from the beginning of a line to the start of a block
+            extensions=['jinja2.ext.do']
         )
         env.parse(template_str)
         return True, "Template syntax is valid"
@@ -37,7 +38,8 @@ def render_template_string(template_str, data, trim_blocks=True, lstrip_blocks=T
     try:
         env = Environment(
             trim_blocks=trim_blocks,
-            lstrip_blocks=lstrip_blocks
+            lstrip_blocks=lstrip_blocks,
+            extensions=['jinja2.ext.do']
         )
         template = env.from_string(template_str)
         return True, template.render(**data)
