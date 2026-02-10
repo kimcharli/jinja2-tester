@@ -50,10 +50,31 @@
                     <textarea id="dataInput" name="data" placeholder="Enter data in JSON or YAML format...">{{ data_input if data_input else '{}' }}</textarea>
                 </div>
                 
-                <button id="validateBtn" class="primary-button">Validate and Render</button>
-                
+                <div class="validate-row">
+                    <button id="validateBtn" class="primary-button">Validate and Render</button>
+                    <button id="statusBtn" class="status-button" title="Show status details">Status</button>
+                </div>
+
                 <!-- Always include result div -->
                 <div id="resultDiv" class="result" style="display: none;"></div>
+
+                <!-- Status panel (hidden by default) -->
+                <div id="statusPanel" class="status-panel" style="display: none;">
+                    <div class="status-header">
+                        <strong>Status Details</strong>
+                        <button id="statusCloseBtn" class="status-close">&times;</button>
+                    </div>
+                    <div id="statusContent" class="status-content">
+                        <div class="status-row"><span class="status-label">Template size:</span> <span id="statusTemplateSize">--</span></div>
+                        <div class="status-row"><span class="status-label">Data size:</span> <span id="statusDataSize">--</span></div>
+                        <div class="status-row"><span class="status-label">Data format:</span> <span id="statusDataFormat">--</span></div>
+                        <div class="status-row"><span class="status-label">Parse time:</span> <span id="statusParseTime">--</span></div>
+                        <div class="status-row"><span class="status-label">Render time:</span> <span id="statusRenderTime">--</span></div>
+                        <div class="status-row"><span class="status-label">Output size:</span> <span id="statusOutputSize">--</span></div>
+                        <div id="statusWarnings" class="status-warnings" style="display: none;"></div>
+                        <div id="statusError" class="status-error-detail" style="display: none;"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Panel - Output -->

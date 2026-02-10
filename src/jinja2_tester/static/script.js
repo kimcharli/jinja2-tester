@@ -14,15 +14,64 @@ document.addEventListener('DOMContentLoaded', function() {
     const outputArea = document.getElementById('outputArea');
     const dataFormatSelect = document.getElementById('dataFormatSelect');
     const formatDataBtn = document.getElementById('formatDataBtn');
+    const statusBtn = document.getElementById('statusBtn');
+    const statusPanel = document.getElementById('statusPanel');
+    const statusCloseBtn = document.getElementById('statusCloseBtn');
 
     let debounceTimeout;
+    let lastStatus = null;
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        if (bytes < 1024) return bytes + ' B';
+        return (bytes / 1024).toFixed(1) + ' KB';
+    }
+
+    function updateStatusPanel(status, errorMsg) {
+        lastStatus = status;
+        if (!status) {
+            statusBtn.className = 'status-button';
+            return;
+        }
+
+        document.getElementById('statusTemplateSize').textContent = formatBytes(status.template_size);
+        document.getElementById('statusDataSize').textContent = formatBytes(status.data_size);
+        document.getElementById('statusDataFormat').textContent = status.data_format || '--';
+        document.getElementById('statusParseTime').textContent = status.parse_time_ms + ' ms';
+        document.getElementById('statusRenderTime').textContent = status.render_time_ms + ' ms';
+        document.getElementById('statusOutputSize').textContent = formatBytes(status.output_size);
+
+        // Show warnings
+        const warningsDiv = document.getElementById('statusWarnings');
+        if (status.warnings && status.warnings.length > 0) {
+            warningsDiv.innerHTML = status.warnings.map(w => '<div class="status-warning-item">Warning: ' + w + '</div>').join('');
+            warningsDiv.style.display = 'block';
+        } else {
+            warningsDiv.style.display = 'none';
+        }
+
+        // Show error detail
+        const errorDiv = document.getElementById('statusError');
+        if (errorMsg) {
+            errorDiv.textContent = errorMsg;
+            errorDiv.style.display = 'block';
+            statusBtn.className = 'status-button status-has-error';
+        } else {
+            errorDiv.style.display = 'none';
+            if (status.warnings && status.warnings.length > 0) {
+                statusBtn.className = 'status-button status-has-warning';
+            } else {
+                statusBtn.className = 'status-button status-ok';
+            }
+        }
+    }
 
     // Function to update the rendered output
     function updateRenderedOutput() {
         // Show loading state
         outputArea.innerHTML = '<div class="placeholder-text">Rendering...</div>';
         outputArea.classList.add('empty');
-        
+
         const formData = new FormData();
         formData.append('template', templateInput.value);
         formData.append('data', dataInput.value);
@@ -41,6 +90,9 @@ document.addEventListener('DOMContentLoaded', function() {
             resultDiv.className = `result ${data.is_valid ? 'success' : 'error'}`;
             resultDiv.style.display = 'block';
 
+            // Update status panel
+            updateStatusPanel(data.status, data.is_valid ? null : data.result);
+
             // Update rendered output
             if (data.rendered_output !== null) {
                 outputArea.textContent = data.rendered_output;
@@ -55,6 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
             resultDiv.textContent = 'Error: Failed to render template';
             resultDiv.className = 'result error';
             resultDiv.style.display = 'block';
+            updateStatusPanel(null, 'Network error: ' + error.message);
+            statusBtn.className = 'status-button status-has-error';
             outputArea.innerHTML = '<div class="placeholder-text">Error occurred while rendering</div>';
             outputArea.classList.add('empty');
         });
@@ -303,6 +357,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+
+    // Status button toggle
+    statusBtn.addEventListener('click', function() {
+        statusPanel.style.display = statusPanel.style.display === 'none' ? 'block' : 'none';
+    });
+    statusCloseBtn.addEventListener('click', function() {
+        statusPanel.style.display = 'none';
+    });
 
     // Add event listeners for the checkboxes
     document.getElementById('trimBlocksToggle').addEventListener('change', debounceInput);

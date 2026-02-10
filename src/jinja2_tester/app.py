@@ -3,12 +3,14 @@ from jinja2 import Environment, meta, exceptions
 import json
 import yaml
 import os
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+app.request_class.max_form_memory_size = 5 * 1024 * 1024  # 5MB max form field size
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
 
 ALLOWED_TEMPLATE_EXTENSIONS = {'.j2', '.jinja', '.jinja2', '.html', '.txt'}
@@ -155,53 +157,83 @@ def upload_data():
 
 @app.route('/render', methods=['POST'])
 def render():
+    status = {
+        'template_size': 0,
+        'data_size': 0,
+        'data_format': None,
+        'parse_time_ms': 0,
+        'render_time_ms': 0,
+        'output_size': 0,
+        'warnings': [],
+    }
     try:
         template_str = request.form.get('template', '')
         data_str = request.form.get('data', '{}')
         # Get whitespace control preferences, default to True
         trim_blocks = request.form.get('trim_blocks', 'true').lower() == 'true'
         lstrip_blocks = request.form.get('lstrip_blocks', 'true').lower() == 'true'
-        
+
+        status['template_size'] = len(template_str.encode('utf-8'))
+        status['data_size'] = len(data_str.encode('utf-8'))
+
+        if status['data_size'] > 100 * 1024:
+            status['warnings'].append(f"Large data input: {status['data_size'] / 1024:.1f} KB")
+
         # Try parsing as JSON first, then YAML
+        parse_start = time.time()
         try:
             data = json.loads(data_str)
+            status['data_format'] = 'json'
         except json.JSONDecodeError:
             try:
                 data = yaml.safe_load(data_str)
+                status['data_format'] = 'yaml'
             except yaml.YAMLError as e:
+                status['parse_time_ms'] = round((time.time() - parse_start) * 1000)
+                status['data_format'] = 'invalid'
                 return jsonify({
                     'is_valid': False,
                     'result': f'Invalid data format: {str(e)}',
-                    'rendered_output': None
+                    'rendered_output': None,
+                    'status': status
                 })
+        status['parse_time_ms'] = round((time.time() - parse_start) * 1000)
 
         # Validate and render the template with whitespace control options
+        render_start = time.time()
         is_valid, result = validate_template(template_str, trim_blocks, lstrip_blocks)
         if is_valid:
             success, rendered = render_template_string(template_str, data, trim_blocks, lstrip_blocks)
+            status['render_time_ms'] = round((time.time() - render_start) * 1000)
             if success:
+                status['output_size'] = len(rendered.encode('utf-8'))
                 return jsonify({
                     'is_valid': True,
                     'result': 'Template is valid',
-                    'rendered_output': rendered
+                    'rendered_output': rendered,
+                    'status': status
                 })
             else:
                 return jsonify({
                     'is_valid': False,
                     'result': rendered,
-                    'rendered_output': None
+                    'rendered_output': None,
+                    'status': status
                 })
         else:
+            status['render_time_ms'] = round((time.time() - render_start) * 1000)
             return jsonify({
                 'is_valid': False,
                 'result': result,
-                'rendered_output': None
+                'rendered_output': None,
+                'status': status
             })
     except Exception as e:
         return jsonify({
             'is_valid': False,
             'result': f'Error: {str(e)}',
-            'rendered_output': None
+            'rendered_output': None,
+            'status': status
         })
 
 def main():
