@@ -8,14 +8,14 @@ A Flask web application for testing Jinja2 templates. Users paste (or upload) a 
 
 ## Tech Stack
 
-| Component | Details |
-|-----------|---------|
-| Language | Python 3.13 |
-| Package manager | `uv` (always use `uv run` to execute) |
-| Backend | Flask 2.3.3, Jinja2 3.1.2, PyYAML 6.0.1 |
-| Frontend | Vanilla HTML/CSS/JS (no framework) |
-| Build | Hatchling |
-| Entry point | `jinja2_tester.app:main` |
+| Component       | Details                                 |
+| --------------- | --------------------------------------- |
+| Language        | Python 3.13                             |
+| Package manager | `uv` (always use `uv run` to execute)   |
+| Backend         | Flask 2.3.3, Jinja2 3.1.2, PyYAML 6.0.1 |
+| Frontend        | Vanilla HTML/CSS/JS (no framework)      |
+| Build           | Hatchling                               |
+| Entry point     | `jinja2_tester.app:main`                |
 
 ## Repository Structure
 
@@ -51,6 +51,7 @@ jinja2-tester/
 ### Backend (`app.py`)
 
 - **Routes:**
+
   - `GET /` - Serve the single-page UI
   - `POST /` - Traditional form submission (render)
   - `POST /render` - AJAX endpoint for real-time rendering (returns JSON with `is_valid`, `result`, `rendered_output`, `status`)
@@ -101,6 +102,6 @@ with app.test_client() as c:
 
 1. **Werkzeug form field size limit:** Default `max_form_memory_size` is 500KB. Large JSON files (like `var/test.json` at 492KB) silently fail with HTTP 413. Fixed by setting `app.request_class.max_form_memory_size = 5MB`.
 
-2. **Data format detection:** The app tries JSON parsing first. If the data is valid YAML but not valid JSON, it correctly falls back to YAML. However, the data format selector on the frontend is independent of server-side detection.
+1. **Data format detection:** The app tries JSON parsing first. If the data is valid YAML but not valid JSON, it correctly falls back to YAML. However, the data format selector on the frontend is independent of server-side detection.
 
-3. **js-yaml CDN dependency:** The frontend loads `js-yaml` from cdnjs at runtime for client-side YAML support. No local fallback exists.
+1. **js-yaml CDN dependency:** The frontend loads `js-yaml` from cdnjs at runtime for client-side YAML support. No local fallback exists.

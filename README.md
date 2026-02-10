@@ -57,10 +57,10 @@ EXECUTION_TIMEOUT=5
 ## Usage
 
 1. Open your web browser and navigate to `http://localhost:5000`
-2. Enter or upload a Jinja2 template
-3. Enter or upload JSON/YAML data
-4. Click "Validate and Render" to process the template
-5. View the validation results and rendered output
+1. Enter or upload a Jinja2 template
+1. Enter or upload JSON/YAML data
+1. Click "Validate and Render" to process the template
+1. View the validation results and rendered output
 
 ## Supported File Types
 

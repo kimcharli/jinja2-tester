@@ -1,29 +1,32 @@
 # Jinja2 Tester - Requirements
 
 ## REQ-001: Status Button for Error Visibility
+
 **Status:** Implemented
 **Priority:** High
 **Date:** 2026-02-10
 
 ### Problem
+
 When using large data files (e.g., `ospf.j2` + `test.json` at ~492KB), the web interface produces no output with no visible error feedback. The rendering works correctly in Python but the web UI silently fails, leaving users with no information about what went wrong.
 
 ### Requirements
+
 1. **Status Button** - A button next to "Validate and Render" that shows rendering status details
-2. **Status Panel** - Expandable panel showing:
+1. **Status Panel** - Expandable panel showing:
    - Template size (bytes)
    - Data size (bytes) with warning for large inputs (>100KB)
    - Detected data format (JSON/YAML/invalid)
    - Parse time (ms)
    - Render time (ms)
    - Output size (bytes)
-3. **Color-coded Status** - Button changes color based on state:
+1. **Color-coded Status** - Button changes color based on state:
    - Gray: no render yet
    - Green: success
    - Yellow: warnings (e.g., large data size)
    - Red: error occurred
-4. **Error Details** - Full error message displayed in the status panel
-5. **Warnings** - Alert when data exceeds 100KB threshold
+1. **Error Details** - Full error message displayed in the status panel
+1. **Warnings** - Alert when data exceeds 100KB threshold
 
 ### Root Cause Found
 
