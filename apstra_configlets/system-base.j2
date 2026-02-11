@@ -1,3 +1,12 @@
+{# Config Style: Junos #}
+{# Section: Top-Level Hierarchical #}
+{% set DOMAIN_NAME = 'pslab.net' %}
+{% set SYSLOG_HOST = '10.84.192.10' %}
+{% set TIMEZONE = 'America/New_York' %}
+{% set NTP_SERVER = '10.85.130.130' %}
+{% set NAME_SERVERS = ['10.85.192.2'] %}
+{% set RADIUS_SERVERS = ['10.85.192.3'] %}
+{% set RADIUS_SECRET = '$9$5T/tEcleWxevDkqPn6WLx7s4' %}
 system {
     login {
         user labroot {
@@ -7,6 +16,11 @@ system {
                 ssh-ed25519 "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBtWQrJyUW+EMN3cC+9fzmWEBh4GpT5+SlenOZ3QD7ik ckim@ckim-mbp"; ## SECRET-DATA
             }
         }
+{% if RADIUS_SERVERS %}
+        user remote {
+            class super-user;
+        }
+{% endif %}
         message "BEWARE OF SECURITY";
     }
     services {
@@ -20,19 +34,33 @@ system {
             }            
         }
     }
-    domain-search pslab.net;    
-    time-zone America/New_York;
+    domain-search {{ DOMAIN_NAME }};    
+    time-zone {{ TIMEZONE }};
     syslog {
-        host 10.84.192.10 {
+        host {{ SYSLOG_HOST }} {
             any info;
             facility-override local7;
             routing-instance mgmt_junos;
         }
     }
+{% if RADIUS_SERVERS %}
+    authentication-order [ radius password ];
+{% endif %}
     name-server {
-        10.85.192.2 routing-instance mgmt_junos;
+        {{ NAME_SERVERS[0] }} routing-instance mgmt_junos;
     }
     ntp {
-        server 10.85.130.130 routing-instance mgmt_junos;
+        server {{ NTP_SERVER }} routing-instance mgmt_junos;
     }
+{% if RADIUS_SERVERS %}
+    radius-server {
+        {{ RADIUS_SERVERS[0] }} {
+            routing-instance mgmt_junos;
+            port 1812;
+            secret "{{ RADIUS_SECRET }}"; ## SECRET-DATA
+        }
+    }
+{% endif %}
+
 }
+
