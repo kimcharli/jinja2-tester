@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 import time
 
 import yaml
@@ -273,8 +274,29 @@ def render():
         )
 
 
+DEFAULT_PORT = 5001
+PORT_SCAN_RANGE = 10
+
+
+def find_available_port(start_port, scan_range=PORT_SCAN_RANGE):
+    """Try start_port, then the next scan_range ports. Return first available."""
+    for port in range(start_port, start_port + scan_range + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+    return None
+
+
 def main():
-    app.run(debug=True)
+    port = int(os.getenv("PORT", DEFAULT_PORT))
+    available = find_available_port(port)
+    if available is None:
+        end = port + PORT_SCAN_RANGE
+        print(f"Error: No available port found in range {port}-{end}")
+        return
+    if available != port:
+        print(f"Port {port} is in use, using port {available} instead")
+    app.run(debug=True, port=available)
 
 
 if __name__ == "__main__":
