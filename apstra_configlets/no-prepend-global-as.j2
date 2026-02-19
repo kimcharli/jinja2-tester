@@ -1,0 +1,7 @@
+{# Config Style: Junos #}
+{# Section Top-Level, Set/Delete #}
+{# associate no-prepend-global-as #}
+{% set TARGET_VRF = 'corp_trust' %}
+{% for bgp_session in bgp_sessions.values() | selectattr('vrf_name', 'eq', TARGET_VRF ) | list %}
+set routing-instances {{ TARGET_VRF }} protocols bgp group l3rtr neighbor {{ bgp_session.dest_ip }} local-as {{ bgp_session.source_asn }} no-prepend-global-as
+{% endfor %}
