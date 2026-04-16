@@ -1,12 +1,9 @@
-prorocols {
-    igmp-snooping {
-        vlan all {
-            immediate-leave;
-        }
-    }
-    mld-snooping {
-        vlan all {
-            immediate-leave;
-        }
-    }
-}
+{# Config Style: Junos #}
+{# Section: Top-Level Set / Delete #}
+{% if aos_version >= '5.0.0' and role in ['leaf', 'access'] %}
+set routing-instances evpn-1 protocols igmp-snooping vlan all immediate-leave
+set routing-instances evpn-1 protocols mld-snooping vlan all immediate-leave
+{% else %}
+set protocols igmp-snooping vlan all immediate-leave
+set protocols mld-snooping vlan all immediate-leave
+{% endif %}
