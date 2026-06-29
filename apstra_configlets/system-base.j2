@@ -31,16 +31,19 @@ system {
             key-exchange [ dh-group14-sha1 ecdh-sha2-nistp256 ecdh-sha2-nistp384 ecdh-sha2-nistp521 ];
             hostkey-algorithm-list {
                 ed25519;
-            }            
+            }
         }
     }
-    domain-search {{ DOMAIN_NAME }};    
+    domain-search {{ DOMAIN_NAME }};
     time-zone {{ TIMEZONE }};
     syslog {
         host {{ SYSLOG_HOST }} {
             any info;
             facility-override local7;
             routing-instance mgmt_junos;
+        }
+        file duplicate-events {
+            daemon error;
         }
     }
 {% if RADIUS_SERVERS %}
@@ -62,4 +65,3 @@ system {
     }
 {% endif %}
 }
-
