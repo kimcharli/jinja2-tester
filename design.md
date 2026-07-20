@@ -655,3 +655,7 @@ def convert_format(data, target_format):
    - Recovery suggestions
 
 This design document now includes comprehensive specifications for data format intelligence, including format detection, conversion, validation, and error handling. The document covers both frontend and backend implementations, UI components, and user interaction patterns.
+
+## TODO
+
+- [ ] Add `contains` custom test function (Jinja2 `tests` extension)
