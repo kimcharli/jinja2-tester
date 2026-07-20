@@ -7,23 +7,58 @@
 {#   vxlan.n.tags: ospf, ospf/passive #}
 {#   vlan.n.ipv4_address #}
 {% set SYSTEM_OSPF_TAG = 'ospf' %}
-{% if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
+{% set OSPF_EXPORT_STATIC_TAG = 'ospf-export-static' %}{# custom policy #}
+{% set OSPF_EXPORT_DEFAULT_TAG = 'ospf-export-default' %}{# custom policy #}
 {% set OSPF_ACTIVE_TAG = 'ospf' %}
 {% set OSPF_PASSIVE_TAG = 'ospf/passive' %}
 {% set OSPF_VXLAN_TAGS = [OSPF_ACTIVE_TAG, OSPF_PASSIVE_TAG] %}
 {% set OSPF_AREA = '0.0.0.0' %}
 {% set OSPF_MTU = 1500 %}
 {% set OSPF_COMMUNITY = '7:30003' %}
+{% set ospf_flags = namespace(has_static=false, has_default=false) %}
+
+{%- if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
+
+{#- 1. Global Import Policy & Community #}
 set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF from protocol ospf
 set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then community add FROM_OSPF
 set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then accept
 set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
-{# iterate security_zones #}
+
+{#- 2. Scan security_zones upfront to check tag presence #}
+  {% for sz_name, sz_value in security_zones.items() %}
+    {% if sz_value.tags is defined %}
+      {% if OSPF_EXPORT_STATIC_TAG in sz_value.tags %}
+        {% set ospf_flags.has_static = true %}
+      {% endif %}
+      {% if OSPF_EXPORT_DEFAULT_TAG in sz_value.tags %}
+        {% set ospf_flags.has_default = true %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+{# 3. Render policy-statements once at top-level if needed #}
+{% if ospf_flags.has_static %}
+set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF from community FROM_OSPF
+set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF then reject
+set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC from protocol static
+set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC then accept
+{% endif %}
+{% if ospf_flags.has_default %}
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF from community FROM_OSPF
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF then reject
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from protocol static
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then external type 1
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then accept
+{% endif %}
+
+{#- 4. Iterate security_zones for routing-instance & interface config #}
 {% for sz_name, sz_value in security_zones.items() %}{# RZ_LOOP #}
 {% set ospf_vxlans = namespace(dict={}) %}
 {% for vn in vxlan.values() %}{# VXLAN_DICT #}
 {% if vn.vrf_name == sz_name and vn.tags and (OSPF_ACTIVE_TAG in vn.tags or OSPF_PASSIVE_TAG in vn.tags) %}
-{% set _ = ospf_vxlans.dict.update({vn.vlan_id | string: vn.tags}) %}
+{% if ospf_vxlans.dict.update({vn.vlan_id | string: vn.tags}) %}{% endif %}
 {% endif %}
 {% endfor %}{# VXLAN_DICT #}
 {% set ospf_vxlans_dict = ospf_vxlans.dict %}
@@ -33,22 +68,6 @@ set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
-{% if 'ospf-export-static' in sz_value.tags %}
-set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF from community FROM_OSPF
-set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF then reject
-set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC from protocol static
-set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC then accept
-set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-STATIC
-{% endif %}
-{% if 'ospf-export-default' in sz_value.tags %}
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF from community FROM_OSPF
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF then reject
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from protocol static
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then external type 1
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then accept
-set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-DEFAULT
-{% endif %}
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export IMPORT-FROM-OSPF
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
