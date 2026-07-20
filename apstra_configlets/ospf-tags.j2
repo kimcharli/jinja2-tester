@@ -1,0 +1,52 @@
+{# config style: Junos #}
+{# Section: Top-Level Set/Delete #}
+{# Tag based ospf configlet. #}
+{#   system_tags: ospf #}
+{#   vxlan.n.tags: ospf, ospf/passive #}
+{#   vlan.n.ipv4_address #}
+{% set SYSTEM_OSPF_TAG = 'ospf' %}
+{% if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
+{% set OSPF_ACTIVE_TAG = 'ospf' %}
+{% set OSPF_PASSIVE_TAG = 'ospf/passive' %}
+{% set OSPF_VXLAN_TAGS = [OSPF_ACTIVE_TAG, OSPF_PASSIVE_TAG] %}
+{% set OSPF_AREA = '0.0.0.0' %}
+{% set OSPF_MTU = 1500 %}
+{% set OSPF_COMMUNITY = '7:30003' %}
+set policy-options policy-statement Import_From_OSPF term Import_From_OSPF from protocol ospf
+set policy-options policy-statement Import_From_OSPF term Import_From_OSPF then community add FROM_OSPF
+set policy-options policy-statement Import_From_OSPF term Import_From_OSPF then accept
+set policy-options policy-statement Export_To_OSPF term Export_To_OSPF from community FROM_OSPF
+set policy-options policy-statement Export_To_OSPF term Export_To_OSPF then reject
+set policy-options policy-statement Export_To_OSPF term irbs from protocol direct
+set policy-options policy-statement Export_To_OSPF term irbs from protocol static
+set policy-options policy-statement Export_To_OSPF term irbs then accept
+set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
+{# iterate security_zones #}
+{% for sz_name, sz_value in security_zones.items() %}{# RZ_LOOP #}
+{% set ospf_vxlans = namespace(dict={}) %}
+{% for vn in vxlan.values() %}{# VXLAN_DICT #}
+{% if vn.vrf_name == sz_name and vn.tags and (OSPF_ACTIVE_TAG in vn.tags or OSPF_PASSIVE_TAG in vn.tags) %}
+{% set _ = ospf_vxlans.dict.update({vn.vlan_id | string: vn.tags}) %}
+{% endif %}
+{% endfor %}{# VXLAN_DICT #}
+{% set ospf_vxlans_dict = ospf_vxlans.dict %}
+{# DEBUG: ospf_vxlans_dict #}
+{% for vlan_id, vlan_tags in ospf_vxlans_dict.items() %}{# OSPF_VLANs #}
+{% if vlan[vlan_id].ipv4_address %}{# IP CONF #}
+{% if loop.first %}{# SZ_FIRST #}
+set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
+set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
+delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
+set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export Import_From_OSPF
+set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
+set routing-instances {{ sz_name }} protocols ospf export Export_To_OSPF
+{% endif %}{# SZ_FIRST #}
+{% if OSPF_ACTIVE_TAG in vlan_tags and vlan[vlan_id].ipv4_address %}
+set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} mtu {{ OSPF_MTU }}
+{% else %}
+set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} passive
+{% endif %}
+{% endif %}{# IP CONF #}
+{% endfor %}{# OSPF_VLANS #}
+{% endfor %}{# RZ_LOOP #}
+{% endif %}{# SYSTEM_TAGS #}
