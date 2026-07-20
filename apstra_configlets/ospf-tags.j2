@@ -1,7 +1,9 @@
 {# config style: Junos #}
 {# Section: Top-Level Set/Delete #}
 {# Tag based ospf configlet. #}
+{# OSPF requires ipv4_address on VN bound_to #}
 {#   system_tags: ospf #}
+{#   rz.tags: ospf-export-static, ospf-export-default #}
 {#   vxlan.n.tags: ospf, ospf/passive #}
 {#   vlan.n.ipv4_address #}
 {% set SYSTEM_OSPF_TAG = 'ospf' %}
@@ -12,14 +14,9 @@
 {% set OSPF_AREA = '0.0.0.0' %}
 {% set OSPF_MTU = 1500 %}
 {% set OSPF_COMMUNITY = '7:30003' %}
-set policy-options policy-statement Import_From_OSPF term Import_From_OSPF from protocol ospf
-set policy-options policy-statement Import_From_OSPF term Import_From_OSPF then community add FROM_OSPF
-set policy-options policy-statement Import_From_OSPF term Import_From_OSPF then accept
-set policy-options policy-statement Export_To_OSPF term Export_To_OSPF from community FROM_OSPF
-set policy-options policy-statement Export_To_OSPF term Export_To_OSPF then reject
-set policy-options policy-statement Export_To_OSPF term irbs from protocol direct
-set policy-options policy-statement Export_To_OSPF term irbs from protocol static
-set policy-options policy-statement Export_To_OSPF term irbs then accept
+set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF from protocol ospf
+set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then community add FROM_OSPF
+set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then accept
 set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
 {# iterate security_zones #}
 {% for sz_name, sz_value in security_zones.items() %}{# RZ_LOOP #}
@@ -32,14 +29,29 @@ set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
 {% set ospf_vxlans_dict = ospf_vxlans.dict %}
 {# DEBUG: ospf_vxlans_dict #}
 {% for vlan_id, vlan_tags in ospf_vxlans_dict.items() %}{# OSPF_VLANs #}
-{% if vlan[vlan_id].ipv4_address %}{# IP CONF #}
+{% if vlan[vlan_id].ipv4_address %}{# IP CONF - ipv4_address on VN bound_to #}
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
+{% if 'ospf-export-static' in sz_value.tags %}
+set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF from community FROM_OSPF
+set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF then reject
+set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC from protocol static
+set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC then accept
+set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-STATIC
+{% endif %}
+{% if 'ospf-export-default' in sz_value.tags %}
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF from community FROM_OSPF
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF then reject
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from protocol static
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then external type 1
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then accept
+set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-DEFAULT
+{% endif %}
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
-set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export Import_From_OSPF
+set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export IMPORT-FROM-OSPF
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
-set routing-instances {{ sz_name }} protocols ospf export Export_To_OSPF
 {% endif %}{# SZ_FIRST #}
 {% if OSPF_ACTIVE_TAG in vlan_tags and vlan[vlan_id].ipv4_address %}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} mtu {{ OSPF_MTU }}
