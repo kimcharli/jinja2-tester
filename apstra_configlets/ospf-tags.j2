@@ -15,7 +15,9 @@
 {% set OSPF_AREA = '0.0.0.0' %}
 {% set OSPF_MTU = 1500 %}
 {% set OSPF_COMMUNITY = '7:30003' %}
-{% set ospf_flags = namespace(has_static=false, has_default=false) %}
+{% set static_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_STATIC_TAG) | list %}
+{% set default_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_DEFAULT_TAG) | list %}
+
 
 {%- if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
 
@@ -26,25 +28,16 @@ set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then 
 set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
 
 {#- 2. Scan security_zones upfront to check tag presence #}
-  {% for sz_name, sz_value in security_zones.items() %}
-    {% if sz_value.tags is defined %}
-      {% if OSPF_EXPORT_STATIC_TAG in sz_value.tags %}
-        {% set ospf_flags.has_static = true %}
-      {% endif %}
-      {% if OSPF_EXPORT_DEFAULT_TAG in sz_value.tags %}
-        {% set ospf_flags.has_default = true %}
-      {% endif %}
-    {% endif %}
-  {% endfor %}
 
 {# 3. Render policy-statements once at top-level if needed #}
-{% if ospf_flags.has_static %}
+{% if static_check %}
 set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF from community FROM_OSPF
 set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF then reject
 set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC from protocol static
 set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC then accept
 {% endif %}
-{% if ospf_flags.has_default %}
+
+{% if default_check %}
 set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF from community FROM_OSPF
 set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF then reject
 set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from protocol static
@@ -57,14 +50,14 @@ set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then
 {% for sz_name, sz_value in security_zones.items() %}{# RZ_LOOP #}
 {% set ospf_vxlans = namespace(dict={}) %}
 {% for vn in vxlan.values() %}{# VXLAN_DICT #}
-{% if vn.vrf_name == sz_name and vn.tags and (OSPF_ACTIVE_TAG in vn.tags or OSPF_PASSIVE_TAG in vn.tags) %}
+{# ipv4_address on the bound_to VLAN is required, so filter here to keep loop.first meaningful #}
+{% if vn.vrf_name == sz_name and vn.tags and (OSPF_ACTIVE_TAG in vn.tags or OSPF_PASSIVE_TAG in vn.tags) and vlan[vn.vlan_id | string].ipv4_address %}
 {% if ospf_vxlans.dict.update({vn.vlan_id | string: vn.tags}) %}{% endif %}
 {% endif %}
 {% endfor %}{# VXLAN_DICT #}
 {% set ospf_vxlans_dict = ospf_vxlans.dict %}
 {# DEBUG: ospf_vxlans_dict #}
 {% for vlan_id, vlan_tags in ospf_vxlans_dict.items() %}{# OSPF_VLANs #}
-{% if vlan[vlan_id].ipv4_address %}{# IP CONF - ipv4_address on VN bound_to #}
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
@@ -72,12 +65,11 @@ delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BG
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export IMPORT-FROM-OSPF
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 {% endif %}{# SZ_FIRST #}
-{% if OSPF_ACTIVE_TAG in vlan_tags and vlan[vlan_id].ipv4_address %}
+{% if OSPF_ACTIVE_TAG in vlan_tags %}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} mtu {{ OSPF_MTU }}
 {% else %}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} passive
 {% endif %}
-{% endif %}{# IP CONF #}
 {% endfor %}{# OSPF_VLANS #}
 {% endfor %}{# RZ_LOOP #}
 {% endif %}{# SYSTEM_TAGS #}

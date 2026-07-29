@@ -7,6 +7,7 @@
 {% set NAME_SERVERS = ['10.85.192.2'] %}
 {% set RADIUS_SERVERS = ['10.85.192.3'] %}
 {% set RADIUS_SECRET = '$9$5T/tEcleWxevDkqPn6WLx7s4' %}
+{% set ROUTING_INSTANCE = "routing-instance mgmt_junos" %}
 system {
     login {
         user labroot {
@@ -40,7 +41,7 @@ system {
         host {{ SYSLOG_HOST }} {
             any info;
             facility-override local7;
-            routing-instance mgmt_junos;
+            {{ ROUTING_INSTANCE }};
         }
         file duplicate-events {
             daemon error;
@@ -50,15 +51,15 @@ system {
     authentication-order [ radius password ];
 {% endif %}
     name-server {
-        {{ NAME_SERVERS[0] }} routing-instance mgmt_junos;
+        {{ NAME_SERVERS[0] }} {{ ROUTING_INSTANCE }};
     }
     ntp {
-        server {{ NTP_SERVER }} routing-instance mgmt_junos;
+        server {{ NTP_SERVER }} {{ ROUTING_INSTANCE }};
     }
 {% if RADIUS_SERVERS %}
     radius-server {
         {{ RADIUS_SERVERS[0] }} {
-            routing-instance mgmt_junos;
+            {{ ROUTING_INSTANCE }};
             port 1812;
             secret "{{ RADIUS_SECRET }}"; ## SECRET-DATA
         }

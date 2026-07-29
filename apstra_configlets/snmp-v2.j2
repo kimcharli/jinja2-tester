@@ -1,17 +1,17 @@
-{% set SNMP_VRF = 'mgmt_junos' %}
 {% set SNMP_SOURCE_IP = '1.2.3.4' %}
 {% if SNMP_VRF == 'mgmt_junos' %}
 {% set SNMP_SOURCE_IP = management_ip %}
+{% set ROUTING_INSTANCE = "routing-instance mgmt_junos" %}
 {% endif %}
 set snmp view all oid .1
 set snmp client-list SNMP-RO 10.85.192.45/32
 set snmp client-list SNMP-RO 10.85.192.47/32
 set snmp community test1 view all
 set snmp community test1 authorization read-only
-set snmp community test1 routing-instance {{ SNMP_VRF }} client-list-name SNMP-RO
-set snmp trap-options routing-instance {{ SNMP_VRF }} source-address {{ SNMP_SOURCE_IP }}
+set snmp community test1 {{ ROUTING_INSTANCE }} client-list-name SNMP-RO
+set snmp trap-options {{ ROUTING_INSTANCE }} source-address {{ SNMP_SOURCE_IP }}
 set snmp trap-group TRAP-1 version v2
 set snmp trap-group TRAP-1 targets 10.85.192.45
 set snmp trap-group TRAP-1 targets 10.85.192.47
-set snmp trap-group TRAP-1 routing-instance {{ SNMP_VRF }}
+set snmp trap-group TRAP-1 {{ ROUTING_INSTANCE }}
 set snmp routing-instance-access
