@@ -15,19 +15,18 @@
 {% set OSPF_AREA = '0.0.0.0' %}
 {% set OSPF_MTU = 1500 %}
 {% set OSPF_COMMUNITY = '7:30003' %}
+{# 1. Scan security_zones upfront to check tag presence #}
 {% set static_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_STATIC_TAG) | list %}
 {% set default_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_DEFAULT_TAG) | list %}
 
 
 {%- if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
 
-{#- 1. Global Import Policy & Community #}
+{#- 2. Global Import Policy & Community #}
 set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF from protocol ospf
 set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then community add FROM_OSPF
 set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then accept
 set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
-
-{#- 2. Scan security_zones upfront to check tag presence #}
 
 {# 3. Render policy-statements once at top-level if needed #}
 {% if static_check %}
