@@ -1,17 +1,46 @@
-{% set SNMP_SOURCE_IP = '1.2.3.4' %}
-{% if SNMP_VRF == 'mgmt_junos' %}
+{#
+SNMP v2 configlet example
+Config Style: Junos
+Section: Top-Level, Set/Delete
+Role in ["spine", "leaf"] ## ALL
+kimcharli@gmail.com at 2026/08/05
+#}
 {% set SNMP_SOURCE_IP = management_ip %}
 {% set ROUTING_INSTANCE = "routing-instance mgmt_junos" %}
-{% endif %}
-set snmp view all oid .1
+{% set SNMP_LOCATION_DICT = {
+    'bl-1': 'rack-1-1',
+    'bl-2': 'rack-1-2',
+    'sl-1': 'rack-2-1',
+    'sl-2': 'rack-2-2',
+    'spine1': 'rack-3-1',
+    'spine2': 'rack-3-2',
+}
+%}
+{% set SNMP_LOCATION_DEFAULT = "N/A" %}
+{% set SNMP_CONTACT = 'ckim@juniper.net, 978-111-2222' %}
+set snmp location "{{ SNMP_LOCATION_DICT[name]|default(SNMP_LOCATION_DEFAULT) }}"
+set snmp contact "{{ SNMP_CONTACT }}"
+set snmp view ALL oid .1
+set snmp view MIB-2 oid .1.3.6.1.2.1
 set snmp client-list SNMP-RO 10.85.192.45/32
 set snmp client-list SNMP-RO 10.85.192.47/32
-set snmp community test1 view all
+set snmp community test1 view ALL
 set snmp community test1 authorization read-only
-set snmp community test1 {{ ROUTING_INSTANCE }} client-list-name SNMP-RO
+set snmp community test1 client-list-name SNMP-RO
+{% if ROUTING_INSTANCE %}
+set snmp community test1 {{ ROUTING_INSTANCE }}
+{% endif %}
+{% if ROUTING_INSTANCE %}
 set snmp trap-options {{ ROUTING_INSTANCE }} source-address {{ SNMP_SOURCE_IP }}
+{% else %}
+set snmp trap-options source-address {{ SNMP_SOURCE_IP }}
+{% endif %}
 set snmp trap-group TRAP-1 version v2
 set snmp trap-group TRAP-1 targets 10.85.192.45
 set snmp trap-group TRAP-1 targets 10.85.192.47
+{% if ROUTING_INSTANCE %}
 set snmp trap-group TRAP-1 {{ ROUTING_INSTANCE }}
+{% endif %}
+{% if ROUTING_INSTANCE %}
 set snmp routing-instance-access
+{% endif %}
