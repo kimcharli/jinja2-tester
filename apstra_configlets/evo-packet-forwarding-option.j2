@@ -1,4 +1,18 @@
-{# https://www.juniper.net/documentation/us/en/software/junos/multicast-l2/topics/topic-map/layer-2-forwarding-tables.html #}
+{#
+---
+name: evo-packet-forwarding-option
+summary: Set the host forwarding profile on EVO QFX5130 and QFX5700
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [hcl]
+refs:
+  - https://www.juniper.net/documentation/us/en/software/junos/multicast-l2/topics/topic-map/layer-2-forwarding-tables.html
+---
+-#}
 {% if 'QFX5130' in hcl or 'QFX5700' in hcl %}
 system {
     packet-forwarding-options {

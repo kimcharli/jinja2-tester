@@ -1,10 +1,21 @@
 {#
-SNMP v2 configlet example
-Config Style: Junos
-Section: Top-Level, Set/Delete
+---
+name: snmp-v2
+summary: SNMP v2 community, client list, and trap group settings
+config_style: junos
+section: top_level_set_delete
+roles: [all]
+category: misc
+status: example
+requires:
+  vars: [name, management_ip]
+author: kimcharli@gmail.com
+updated: 2026-08-05
+---
+SNMP v2 configlet example.
+
 Role in ["spine", "leaf"] ## ALL
-kimcharli@gmail.com at 2026/08/05
-#}
+-#}
 {% set SNMP_SOURCE_IP = management_ip %}
 {% set ROUTING_INSTANCE = "routing-instance mgmt_junos" %}
 {% set SNMP_LOCATION_DICT = {

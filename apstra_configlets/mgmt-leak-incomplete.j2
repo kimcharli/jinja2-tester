@@ -1,3 +1,23 @@
+{#
+---
+name: mgmt-leak-incomplete
+summary: Leak routes between the infrastructure VRF and the management routing instance
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: incomplete
+---
+Incomplete work in progress: import policy and rib-group leaking between the
+corp_trust routing instance and mgmt_junos.inet.0.
+
+INCOMPLETE - does not render. Known defect, to be fixed later:
+  - the policy-statement name is written as a variable reference to
+    INFR-2-MGMT-LEAKING, which is undefined and is not even a valid Jinja
+    expression (the hyphens parse as subtraction). The intended value is
+    almost certainly the INFRA_2_MGMT_POLICY variable set above, which is
+    currently unused.
+-#}
 
 
 {% set INFRA_VRF = 'corp_trust' %}

@@ -1,9 +1,22 @@
 {#
+---
+name: sflow-snmpv3
+summary: sFlow export with SNMPv3 for collector interface enrichment
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [role, os_version, management_ip, security_zones, portSetting]
+changelog:
+  - 2025-10-08 enable interface to spines as well
+---
 Configure sflow on the activive interfaces on leaf switches.
   The spine bound interfaces are excluded.
-  Every leaf should have FIS routing zone. As such, a VN of FIS needs to be on every leaf. 
+  Every leaf should have FIS routing zone. As such, a VN of FIS needs to be on every leaf.
   The engine-id is set to 8888. This is to use the same authentication and privacy key.
-  
+
 Test command example:
     snmpwalk -v3  -l authNoPriv -u sflow-v3 -a SHA-256 -A zaq12wsxcde34rfv 10.85.192.16 .1.3.6.1.2.1.2.2.1.10
     snmpwalk -v3  -l authPriv -u sflow-v3 -a SHA-256 -A zaq12wsxcde34rfv  -x AES-128 -X vfr43edcxsw21qaz 10.85.192.16 .1.3.6.1.2.1.2.2.1.10
@@ -20,14 +33,13 @@ EF_PROCESSOR_ENRICH_NETIF_SNMP_V3_PRIVACY_PROTOCOL: "aes128"
 EF_PROCESSOR_ENRICH_NETIF_SNMP_V3_USERNAME: "sflow-v3"
 EF_PROCESSOR_ENRICH_NETIF_SNMP_VERSION: 3
 
-To avoid clear text password in the configlet, the engine-id of the device is set to a specific value. 
+To avoid clear text password in the configlet, the engine-id of the device is set to a specific value.
   1. Generate the authenticaion key and privacy key in a device.
   2. Capture update the value in the configlet/property-sets.
 
-2025-10-08 enable interface to spines as well. 
+2025-10-08 enable interface to spines as well.
     #### keys regenerated for 23.4R2-S4.11. Is the key dependant to version?
-
-#}
+-#}
 
 {# variables - can be set in the property set #}
 {% set LEAF_ONLY = false %}

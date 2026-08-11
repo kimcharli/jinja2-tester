@@ -1,5 +1,18 @@
-{# Config Style: Junos #}
-{# Section: Top-Level Set / Delete #}
+{#
+---
+name: igmp-snooping
+summary: Enable immediate-leave for IGMP and MLD snooping on all VLANs
+config_style: junos
+section: top_level_set_delete
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [aos_version, role]
+---
+Apstra 5.0.0 and later place snooping under the evpn-1 routing instance on leaf
+and access devices; every other combination configures it at the top level.
+-#}
 {% if aos_version >= '5.0.0' and role in ['leaf', 'access'] %}
 set routing-instances evpn-1 protocols igmp-snooping vlan all immediate-leave
 set routing-instances evpn-1 protocols mld-snooping vlan all immediate-leave

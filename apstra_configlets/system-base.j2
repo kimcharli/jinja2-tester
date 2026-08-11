@@ -1,10 +1,19 @@
 {#
-Sytem Base Config Example
-Config Style: Junos
-Section: Top-Level Hierarchical
+---
+name: system-base
+summary: Base system config - login, ssh, syslog, dns, ntp, radius
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: essential
+status: example
+author: kimcharli@gmail.com
+updated: 2026-08-05
+---
+Sytem Base Config Example.
+
 Role in ["spine", "leaf"] ## ALL
-kimcharli@gmail.com at 2026/08/05
-#}
+-#}
 {% set DOMAIN_NAME = 'pslab.net' %}
 {% set SYSLOG_HOST = '10.84.192.10' %}
 {% set TIMEZONE = 'America/New_York' %}

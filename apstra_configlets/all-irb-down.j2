@@ -1,3 +1,16 @@
+{#
+---
+name: all-irb-down
+summary: Disable IRB units of VXLAN VLANs that have an FHRP address
+config_style: junos
+section: top_level_set_delete
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [vlan]
+---
+-#}
 {% for vlan_data in vlan.values() %}
 {% if vlan_data['impl_type'] == 'vxlan' and vlan_data['fhrp_ipv4_address']|length %}
 set interfaces irb unit {{ vlan_data['id'] }} disable

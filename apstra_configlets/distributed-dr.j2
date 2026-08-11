@@ -1,3 +1,16 @@
+{#
+---
+name: distributed-dr
+summary: Static PIM RP and distributed-DR on FHRP-enabled IRBs
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [vlan]
+---
+-#}
 protocols {
     pim {
         rp {

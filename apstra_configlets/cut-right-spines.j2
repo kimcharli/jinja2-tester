@@ -1,4 +1,20 @@
-{# TAG spines with 'left-spine' or 'right-spine' #}
+{#
+---
+name: cut-right-spines
+summary: Disable uplinks toward right-side spines via an apply-group
+config_style: junos
+section: top_level_hierarchical
+roles: [leaf]
+category: misc
+status: active
+requires:
+  vars: [interface]
+  tags: [right-spine]
+---
+Tag spines with 'left-spine' or 'right-spine'.
+
+Assign this configlet to left side leaf.
+-#}
 {% set RIGHT_SPINE_TAG = 'right-spine' %}
 {# assign this configlet to left side leaf #}
 groups cut-right-spine {

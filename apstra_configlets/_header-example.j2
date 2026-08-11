@@ -1,0 +1,28 @@
+{#
+---
+name: irb-n-ip                       # Apstra configlet name; keep == filename stem
+summary: IRB with multiple IPv4 prefixes
+config_style: junos                  # junos | eos | nxos | cumulus | sonic
+section: top_level_set_delete        # top_level_set_delete | top_level_hierarchical | system | interface | file
+roles: [leaf]                        # spine | leaf | access | all
+category: misc                       # essential | conditional | optional | misc
+status: example                      # active | example | not-applied | incomplete
+requires:                            # device-context this template reads
+  vars: [interface, os_version]
+  tags: [no-rstp]                    # tags expected on interfaces / links / VNs / RZs
+tested_on: ["4.2.1.1-10", "6.0.0-189"]
+refs:
+  - https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/
+author: kimcharli@gmail.com
+updated: 2026-08-11
+changelog:
+  - 2026-04-23 implement namespace
+---
+Free-form notes go here, below the fence: rationale, tag contracts,
+caveats ("DID NOT WORK on QFX5120"), test commands.
+
+Rules:
+  - the block must not contain the sequence that closes a Jinja comment;
+    it truncates the header and leaks the rest into rendered config
+  - close with the whitespace-stripping form so no blank line is emitted
+-#}

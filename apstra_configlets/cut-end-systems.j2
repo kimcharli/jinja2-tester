@@ -1,4 +1,17 @@
-{# assign this configlet to leaf #}
+{#
+---
+name: cut-end-systems
+summary: Disable all non-fabric interfaces via an apply-group
+config_style: junos
+section: top_level_hierarchical
+roles: [leaf]
+category: misc
+status: active
+requires:
+  vars: [interface]
+---
+Assign this configlet to leaf.
+-#}
 groups cut-end-systems {
     interfaces {
 {% for _, intf_data in interface.items() %}

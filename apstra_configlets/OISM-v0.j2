@@ -1,0 +1,164 @@
+{#
+---
+name: OISM-v0
+summary: OISM for server leafs and border leafs on Apstra 5.1+
+config_style: junos
+section: top_level_hierarchical
+roles: [leaf]
+category: misc
+status: active
+requires:
+  vars: [system_tags, bgpService, vlan, security_zones, interface, RP, hcl]
+  tags: [border-leaf]
+refs:
+  - https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/topic-map/oism-evpn-vxlan.html
+author: david.potts@hpe.com
+---
+Tag the leaf with 'border-leaf' to render the border leaf variant:
+  - evpn oism pim-evpn-gateway
+  - static RP (from the 'RP' property set, keyed by vrf name)
+  - pim/ospf on l3edge interfaces, distributed-dr on revenue IRBs
+
+Untagged leafs render the server leaf variant (pim passive).
+-#}
+{% set BORDER_LEAF_TAG = 'border-leaf' %}
+{% set is_border_leaf = BORDER_LEAF_TAG in (system_tags | d([])) %}
+
+{# Enable OISM globally #}
+{% if bgpService.evpn_uses_mac_vrf %}
+routing-instances {
+    evpn-1 {
+{% endif %}
+        forwarding-options {
+            multicast-replication {
+                evpn {
+                    irb oism;
+                }
+            }
+        }
+{% if bgpService.evpn_uses_mac_vrf %}
+    }
+}
+{% endif %}
+{# Config SBD IRB and PIM on all revenue interfaces of the associated VRF #}
+{# SBD VLAN and IRB will be configured by Apstra virtual network constructs #}
+{% for v in (vlan | d({})).values() if v.get('name', '').endswith('-SBD') %}
+    {% if loop.first %}
+routing-instances {
+    {% endif %}
+    {{ v.vrf_name }} {
+        protocols {
+            evpn {
+                oism {
+                    supplemental-bridge-domain-irb irb.{{ v.id }};
+    {% if is_border_leaf %}
+                    pim-evpn-gateway;
+    {% endif %}
+                }
+            }
+            ospf {
+                area 0.0.0.0 {
+                    interface irb.{{ v.id }};
+                    interface {{ security_zones[v.vrf_name]['loopback_intf'] }};
+    {% if is_border_leaf %}
+        {% for intf in (interface | d({})).values() if intf.vrf_name == v.vrf_name and intf.role == 'l3edge' %}
+                    interface {{ intf.intfName }};
+        {% endfor %}
+    {% endif %}
+                }
+            }
+            pim {
+    {% if is_border_leaf %}
+        {# config static RP #}
+        {% for rp in (RP | d({})).get(v.vrf_name, []) %}
+            {% if loop.first %}
+                rp {
+                    static {
+            {% endif %}
+                        address {{ rp }};
+            {% if loop.last %}
+                    }
+                }
+            {% endif %}
+        {% endfor %}
+        {# config pim for revenue bd irb with distributed-dr #}
+        {% for i in (vlan | d({})).values() if i.vrf_name == v.vrf_name and i.impl_type == 'vxlan' and not i.get('name', '').endswith('-SBD') and i.ipv4_prefixlen %}
+                interface irb.{{ i.id }} {
+                    distributed-dr;
+                }
+        {% endfor %}
+                interface irb.{{ v.id }};
+                interface {{ security_zones[v.vrf_name]['loopback_intf'] }};
+        {% for intf in (interface | d({})).values() if intf.vrf_name == v.vrf_name and intf.role == 'l3edge' %}
+                interface {{ intf.intfName }};
+        {% endfor %}
+    {% else %}
+                passive;
+                interface all;
+                interface irb.{{ v.id }} {
+                    accept-remote-source;
+                }
+    {% endif %}
+            }
+        }
+    }
+    {% if loop.last %}
+}
+    {% endif %}
+{% endfor %}
+{# Enable IGMP Snooping #}
+{% for v in (vlan | d({})).values() if v.get('name', '').endswith('-SBD') %}
+    {% if loop.first %}
+        {% if bgpService.evpn_uses_mac_vrf %}
+routing-instances {
+    evpn-1 {
+        {% endif %}
+        protocols {
+            igmp-snooping {
+    {% endif %}
+    {% for v1 in (vlan | d({})).values() if v1.get('vrf_name', '') == v['vrf_name'] and v1['impl_type'] == 'vxlan' %}
+                vlan vn{{ v1.id }} {
+                    proxy;
+                }
+    {% endfor %}
+    {% if loop.last %}
+            }
+        }
+        {% if bgpService.evpn_uses_mac_vrf %}
+    }
+}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{# Enable IGMP #}
+{% for v in (vlan | d({})).values() if v.get('name', '').endswith('-SBD') %}
+    {% if loop.first %}
+protocols {
+    igmp {
+    {% endif %}
+    {% for v1 in (vlan | d({})).values() if v1.get('vrf_name', '') == v['vrf_name'] and v1['impl_type'] == 'vxlan' and v1.ipv4_prefixlen %}
+        interface irb.{{ v1.id }};
+    {% endfor %}
+    {% if loop.last %}
+    }
+}
+    {% endif %}
+{% endfor %}
+{# Enable install-star-g-routes on QFX10K and PTX (required) #}
+{# https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/topic-map/oism-evpn-vxlan.html #}
+{% if hcl.startswith('Juniper_QFX1000') or hcl.startswith('Juniper_PTX') %}
+multicast-snooping-options {
+    oism {
+        install-star-g-routes;
+    }
+}
+{% endif %}
+{# Enable conserve-mcast-routes-in-pfe for ACX/QFX5130/QFX5700 (required) #}
+{# https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/topic-map/oism-evpn-vxlan.html #}
+{% if hcl.startswith('Juniper_QFX5130') or hcl.startswith('Juniper_QFX5700') or hcl.startswith('Juniper_ACX') %}
+multicast-snooping-options {
+    oism {
+        conserve-mcast-routes-in-pfe;
+    }
+}
+{% endif %}

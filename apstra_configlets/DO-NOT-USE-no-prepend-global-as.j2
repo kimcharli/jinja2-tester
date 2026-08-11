@@ -1,7 +1,20 @@
-{# NO NOT USE THIS - this function is implemented by Apstra natively #}
-{# Config Style: Junos #}
-{# Section Top-Level, Set/Delete #}
-{# associate no-prepend-global-as #}
+{#
+---
+name: DO-NOT-USE-no-prepend-global-as
+summary: Associate no-prepend-global-as on VRF BGP sessions
+config_style: junos
+section: top_level_set_delete
+roles: [all]
+category: misc
+status: not-applied
+requires:
+  vars: [bgp_sessions]
+---
+DO NOT USE THIS - this function is implemented by Apstra natively.
+
+Adds no-prepend-global-as to the BGP neighbors of group l3rtr in the
+corp_trust routing instance.
+-#}
 {% set TARGET_VRF = 'corp_trust' %}
 {% for bgp_session in bgp_sessions.values() | selectattr('vrf_name', 'eq', TARGET_VRF ) | list %}
 set routing-instances {{ TARGET_VRF }} protocols bgp group l3rtr neighbor {{ bgp_session.dest_ip }} local-as {{ bgp_session.source_asn }} no-prepend-global-as

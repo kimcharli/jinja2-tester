@@ -1,16 +1,26 @@
 {#
-Tag based OSPF configlet
-Config Style: Junos
-Section: Top-Level Set/Delete
-Role in ["leaf"]
-kimcharli@gmail.com at 2026/08/05
+---
+name: ospf-tags
+summary: Tag based OSPF for routing zones and IRB interfaces
+config_style: junos
+section: top_level_set_delete
+roles: [leaf]
+category: misc
+status: active
+requires:
+  vars: [system_tags, security_zones, vxlan, vlan]
+  tags: [ospf, ospf/passive, ospf-export-static, ospf-export-default]
+author: kimcharli@gmail.com
+updated: 2026-08-05
+---
+Tag based OSPF configlet.
 
 OSPF configured when
   system_tags has 'ospf'
   vxlan.n.tags has 'ospf' (active) or 'ospf/passive'
   vlan.n has ipv4_address
   optional: rz.tags has 'ospf-export-static' or 'ospf-export-default'  ## customize in case of policies
-#}
+-#}
 {% set SYSTEM_OSPF_TAG = 'ospf' %}
 {% set OSPF_EXPORT_STATIC_TAG = 'ospf-export-static' %}{# custom policy #}
 {% set OSPF_EXPORT_DEFAULT_TAG = 'ospf-export-default' %}{# custom policy #}

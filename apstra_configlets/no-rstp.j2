@@ -1,10 +1,24 @@
 {#
+---
+name: no-rstp
+summary: Remove RSTP from tagged interfaces
+config_style: junos
+section: top_level_set_delete
+roles: [leaf, access]
+category: essential
+status: active
+requires:
+  vars: [interface]
+  tags: [no-rstp]
+updated: 2026-04-23
+changelog:
+  - 2026-04-23 implement namespace
+---
 Remove RSTP of the target interfaces under the [edit protocols rstp] hierarchy.
 
-To remove RSTP, attach the tag NO_RSTP_TAG to the target interfaces, links, or generic systems. New versions inherit gs tags, but old versions did not.
-
-2026-04-23 implement namespace
-#}
+To remove RSTP, attach the tag NO_RSTP_TAG to the target interfaces, links, or
+generic systems. New versions inherit gs tags, but old versions did not.
+-#}
 {% set NO_RSTP_TAG = "no-rstp" %}
 {% set ns = namespace(intfs=[]) %}
 {% for intf in interface.values()|selectattr('tags') %}{# begin tagged interfaces #}

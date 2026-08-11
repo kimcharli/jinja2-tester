@@ -1,0 +1,64 @@
+{#
+---
+name: em0-leak
+summary: Leak em0 management routes between the default and transit VRFs
+config_style: junos
+section: top_level_set_delete
+roles: [spine, leaf]
+category: misc
+status: active
+requires:
+  vars: [management_ip, system_tags, security_zones]
+  tags: [border-leaf]
+---
+In case of needing MGMT over TRANSIT VRF - for example DCI without direct access.
+
+For all: Spines and Leafs.
+-#}
+{% set TRANSIT_VRF = 'FIS' %}
+{% set ROUTE_FILTER = '10.0.0.0/24' %}
+{% set EM0_PREFIX = '10.85.192.0/26' %}
+{% set BORDER_LEAF_TAG = 'border-leaf' %}{# set border leaf tag #}
+
+{# ---- Common ---- #}
+set policy-options route-filter-list PREFIX-FOR-MGMT 10.0.0.0/24 orlonger
+set policy-options route-filter-list PREFIX-FOR-MGMT 10.0.0.0/8 orlonger
+set policy-options route-filter-list PREFIX-FOR-MGMT 10.3.33.0/24 orlonger
+set policy-options route-filter-list PREFIX-FOR-MGMT 10.85.192.0/26 orlonger
+
+{# default RI has statric route to em0 #}
+set routing-options static route {{ management_ip }}/32 next-table mgmt_junos.inet.0
+{# em0 route excange via underlay BGP #}
+set policy-options policy-statement BGP-AOS-Policy term BGP-AOS-Policy-20 from protocol static
+
+{# The routes that needs mgmt access - common #}
+set policy-options policy-statement PATH-FOR-MGMT term static from protocol direct
+set policy-options policy-statement PATH-FOR-MGMT term static from protocol bgp
+set policy-options policy-statement PATH-FOR-MGMT term static from protocol evpn
+set policy-options policy-statement PATH-FOR-MGMT term static from route-filter-list PREFIX-FOR-MGMT
+set policy-options policy-statement PATH-FOR-MGMT term static then accept
+set policy-options policy-statement PATH-FOR-MGMT term else then reject
+
+{# from inet.0 to mgmt_junos.inet.0 #}
+set routing-options rib-groups INET-TO-MGMT import-rib inet.0
+set routing-options rib-groups INET-TO-MGMT import-rib mgmt_junos.inet.0
+set routing-options rib-groups INET-TO-MGMT import-policy PATH-FOR-MGMT
+
+set routing-options interface-routes rib-group INET-TO-MGMT
+set routing-options static rib-group INET-TO-MGMT
+
+{# ---- Border Leaf ---- #}
+{% if BORDER_LEAF_TAG in system_tags and  TRANSIT_VRF in security_zones %}{# border leaf #}
+
+{# transit VRF (border leaf) has static route to default RI #}
+set routing-instances FIS routing-options static route {{ EM0_PREFIX }} next-table inet.0
+
+set routing-options rib-groups TRANSIT-TO-INET import-rib {{ TRANSIT_VRF }}.inet.0
+set routing-options rib-groups TRANSIT-TO-INET import-rib inet.0
+set routing-options rib-groups TRANSIT-TO-INET import-policy PATH-FOR-MGMT
+
+set routing-instances {{ TRANSIT_VRF }} routing-options static route {{ management_ip }}/32 next-table inet.0
+set routing-instances {{ TRANSIT_VRF }} routing-options static rib-group TRANSIT-TO-INET
+set routing-instances {{ TRANSIT_VRF }} routing-options interface-routes rib-group TRANSIT-TO-INET
+
+{% endif %}

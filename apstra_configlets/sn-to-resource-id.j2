@@ -1,3 +1,16 @@
+{#
+---
+name: sn-to-resource-id
+summary: Map device serial number to a resource id in the SNMP description
+config_style: junos
+section: top_level_set_delete
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [device_sn]
+---
+-#}
 {% set SN_TO_LRM_ID = { 
   'XH3119430106': 'ps-QFX5120-48Y-8C-r002',
   'XH3119430153': 'ps-QFX5120-48Y-8C-r001',

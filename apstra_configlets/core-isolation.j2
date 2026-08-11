@@ -1,6 +1,20 @@
-{# 
-https://www.juniper.net/documentation/us/en/software/junos/evpn/topics/concept/evpn-core-isolation-interface-shutdown-service-tracking.html
-#}
+{#
+---
+name: core-isolation
+summary: Core isolation interface shutdown via network-isolation service tracking
+config_style: junos
+section: top_level_set_delete
+roles: [leaf, access]
+category: essential
+status: active
+requires:
+  vars: [interface, role, os, os_version]
+refs:
+  - https://www.juniper.net/documentation/us/en/software/junos/evpn/topics/concept/evpn-core-isolation-interface-shutdown-service-tracking.html
+---
+Renders only on Junos leaf and access devices running a version later than
+23.2R1 that have l2edge interfaces.
+-#}
 {% set NETWORK_ISOLATION_GROUP = 'NET-ISOLATION' %}
 {% set HOLD_TIME_UP = 120000 %}{# ms #}
 {% set SERVICE_TRACKING_ACTION = 'link-down' %}{# link-down, lacp-out-of-sync #}

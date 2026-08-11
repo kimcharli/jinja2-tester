@@ -1,3 +1,18 @@
+{#
+---
+name: mode-fec
+summary: Set FEC108 gigether-options on tagged interfaces
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [interface]
+  tags: [fec108]
+---
+Attach the tag fec108 to the target interfaces.
+-#}
 {% for intf, intf_dict in interface.items() %}
 {% if loop.first %}
 interfaces {

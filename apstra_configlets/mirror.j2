@@ -1,4 +1,21 @@
-{# mirror the interface with intf_tags 'mirror' #}
+{#
+---
+name: mirror
+summary: Mirror tagged interfaces to a port analyzer
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [interface]
+  tags: [mirror]
+---
+Mirror the interface with intf_tags 'mirror'.
+
+Ingress and egress of every tagged interface is copied to the analyzer, whose
+destination IP is hardcoded in the template.
+-#}
 {% set mirrored_interfaces = [] %}
 {% set analyzer_ip = '192.168.0.2' %}
 {% for intf in interface.values() %}

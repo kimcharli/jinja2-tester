@@ -1,5 +1,20 @@
-{# Apply Juniper Device licenses in configuration mode #}
-{# for all the switches #}
+{#
+---
+name: device-licenses
+summary: Apply Juniper device license keys keyed by serial number
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: optional
+status: example
+requires:
+  vars: [device_sn]
+---
+Apply Juniper Device licenses in configuration mode.
+
+For all the switches. The serial-number-to-license map carries a placeholder key;
+replace it with the real licenses before use.
+-#}
 {% set SN_2_LICENSE_MAP = {
     'XH3119430106': "E20191218001 AAAAAA BBBBB CCCCC DDDDD EEEEE FFFFF GGGGG HHHHH IIIII JJJJJJ KKKKKK LLLLLL MMMMMM NNNNN OOOOO PPPPP RRRRR SSSSS TTTTT UUUUU",
 } %}

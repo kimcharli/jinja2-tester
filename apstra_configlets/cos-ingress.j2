@@ -1,3 +1,14 @@
+{#
+---
+name: cos-ingress
+summary: Ingress classification, policer, and CoS rewrite rules
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+---
+-#}
 firewall {
     family inet {
         filter CLASSIFY-FC {

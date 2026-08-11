@@ -1,3 +1,18 @@
+{#
+---
+name: non-evo-sflow
+summary: Configure sFlow sampling and collector on non-EVO Junos devices
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+requires:
+  vars: [os_version, collector_ip, management_ip, portSetting]
+---
+Skipped entirely on EVO images. A static route sends collector traffic to the
+management routing instance, and only ports whose state is active are sampled.
+-#}
 {% if not os_version.endswith("-EVO") %}
 routing-options {
     static {

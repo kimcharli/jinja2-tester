@@ -1,3 +1,16 @@
+{#
+---
+name: aos-version-example
+summary: Example of gating configuration on aos_version to disable ARP suppression
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: example
+requires:
+  vars: [aos_version, vlan]
+---
+-#}
 {% if aos_version == "4.2.1" %}
 routing-instances {
     evpn-1 {

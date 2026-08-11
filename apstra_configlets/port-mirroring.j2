@@ -1,6 +1,20 @@
-{# DID NOT WORK on QFX5120 #}
-{# This is a port mirroring configuration template #}
-{# for family ethernet-swithing #}
+{#
+---
+name: port-mirroring
+summary: Port mirroring of tagged family ethernet-switching interfaces
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: not-applied
+requires:
+  vars: [interface]
+  tags: [port-mirroring]
+---
+DID NOT WORK on QFX5120.
+
+This is a port mirroring configuration template for family ethernet-swithing.
+-#}
 {# Customize the mirror-term #}
 {% set port_mirroring_vn = 'vn888' %}
 {% set mirror_tag = 'port-mirroring' %}

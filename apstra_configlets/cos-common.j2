@@ -1,5 +1,14 @@
-
-{# role == leaf #}
+{#
+---
+name: cos-common
+summary: Common class-of-service classifiers, forwarding classes, and host-outbound traffic
+config_style: junos
+section: top_level_hierarchical
+roles: [leaf]
+category: misc
+status: active
+---
+-#}
 class-of-service {
     classifiers {
         dscp BA-DSCP {

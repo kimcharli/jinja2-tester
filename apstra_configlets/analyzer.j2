@@ -1,5 +1,20 @@
-{# mirror the interface using analyzer with intf_tags 'mirror' #}
-{# property sets #}
+{#
+---
+name: analyzer
+summary: Mirror tagged interfaces to a collector using an analyzer
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: optional
+status: active
+requires:
+  vars: [interface]
+  tags: [mirror]
+---
+Mirror the interface using an analyzer, selecting interfaces by the intf_tags
+value 'mirror'. The collector address and the tag literal are defined at the
+top of the template in place of property sets.
+-#}
 {% set collector_ip = '192.168.0.2' %}
 {% set mirror_tag = 'mirror' %}
 {# build variables for the script #}

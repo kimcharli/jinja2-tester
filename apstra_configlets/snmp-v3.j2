@@ -1,12 +1,18 @@
-{# Config Style: Junos #}
-{# Section: Top-Level Hierarchical #}
 {#
+---
+name: snmp-v3
+summary: SNMP v3 with generated authentication and privacy keys
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: active
+---
 Configure snmp v3 with generated keys instead of plain text password.
-  
+
 Test command example:
     snmpwalk -v3  -l authPriv -u v3-user-a -a SHA-256 -A secure-auth-password -x AES-128 -X secure-priv-password 10.85.192.16 .1.3.6.1.2.1.1
-
-#}
+-#}
 
 {# use fixed engine_id to produce consistent keys #}
 {% set engine_id = 8888 %}

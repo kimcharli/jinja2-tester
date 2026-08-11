@@ -1,5 +1,19 @@
-{# no-arp-suppression is deprecated. This is just an example. #}
-{# aos_version was not detected #}
+{#
+---
+name: no-arp-suppression
+summary: Disable ARP suppression on VXLAN virtual networks
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: misc
+status: example
+requires:
+  vars: [aos_version, vlan]
+---
+no-arp-suppression is deprecated. This is just an example.
+
+aos_version was not detected.
+-#}
 {% if aos_version == '4.2.1' %}
 routing-instances {
     evpn-1 {

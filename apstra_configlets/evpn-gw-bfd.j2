@@ -1,7 +1,22 @@
-{# Add BFD configuration on DCI EVPN GW sessions #}
-{# apply to border leafs. It is ok to apply all the switches though #}
-{# tested with 4.2.1.1-10, and 6.0.0-189 #}
-{# 2025-08-08 ckim #}
+{#
+---
+name: evpn-gw-bfd
+summary: Add BFD liveness detection to DCI EVPN GW BGP sessions
+config_style: junos
+section: top_level_set_delete
+roles: [leaf]
+category: conditional
+status: active
+requires:
+  vars: [bgp_sessions]
+tested_on: ["4.2.1.1-10", "6.0.0-189"]
+changelog:
+  - 2025-08-08 ckim
+---
+Add BFD configuration on DCI EVPN GW sessions.
+
+Apply to border leafs. It is ok to apply all the switches though.
+-#}
 {% set EVPN_GW_GROUP = "evpn-gw" %}
 {% set EVPN_GW_ROLE = "leaf_remote_gw" %}
 {% set DCI_SESSIONS = bgp_sessions.values() | selectattr('role', 'eq', EVPN_GW_ROLE) | list %}

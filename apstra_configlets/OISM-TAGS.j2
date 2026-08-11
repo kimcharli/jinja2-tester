@@ -1,0 +1,55 @@
+{#
+---
+name: OISM-TAGS
+summary: Enhanced OISM for EVPN/VXLAN ERB driven by tags
+config_style: junos
+section: top_level_set_delete
+roles: [leaf]
+category: misc
+status: incomplete
+requires:
+  vars: [os, model, security_zones, vxlan, evpn_interconnect]
+  tags: [OISM-PEG-LEAF, OISM-LEAF, OISM-RZ, OISM-VN]
+refs:
+  - https://www.juniper.net/documentation/us/en/software/junos/evpn/topics/topic-map/evpn-vxlan-dci-enhanced-oism.html
+---
+Enhanced OISM only with EVPN/VXLAN ERB.
+
+INCOMPLETE - does not render. Known defects, to be fixed later:
+  - the OISM_RZ_DICT expression has unbalanced parentheses and a misplaced pipe
+    after selectattr('tags', 'exists'
+  - OISM_RZ_DICT is only assigned inside the 'if' branch but is iterated
+    unconditionally afterwards
+  - OISM_PEG_LEAF_TAG, OISM_VN_TAG, MROUTE_PROTOCOL, IS_IGW_DEVICE and
+    IS_OISM_LEAF are set but never used
+-#}
+{% set OISM_PEG_LEAF_TAG = 'OISM-PEG-LEAF' %}{# Set TAG on OSIM Border (PIM) Leaf devices. Can be iGW, Border Leaf, or server leaf #}
+{% set OISM_LEAF_TAG = 'OISM-LEAF' %}
+{% set MROUTE_PROTOCOL = 'OSPF' %}{# OR inet.2 #}
+{% set OISM_RZ_TAG = 'OISM-RZ' %}{# Add TAG for OSIM Routing Zones. #}
+{% set OISM_VN_TAG = 'OISM-VN' %}
+{% set IS_EVO = 'EVO' in os %}
+{% set OISM_RZ_MAP = {
+    'FIS': {
+        'SBD': 1122,
+    }
+}
+%}
+{% set IS_IGW_DEVICE = evpn_interconnect.label %}
+{% set OISM_RZ_DICT = security_zones | selectattr('tags', 'exists'| selectattr(OISM_RZ_TAG, 'in', security_zones.tags) | list %}
+{% if OISM_RZ_DICT%}{# OISM RZ present #}
+{% set IS_OISM_LEAF = True %}
+set forwarding-options multicast-replication evpn irb enhanced-oism
+{% endif %}
+{% for RZ_DICT in OISM_RZ_DICT %}{# iterate RZ #}
+{% if IS_EVO %}
+set routing-instances {{ RZ_DICT.name }} multicast-snooping-options oism conserve-mcast-routes-in-pfe
+{% endif %}
+{% if 'EX4400' in model %}
+set forwarding-options vxlan-dci-enable
+{% endif %}
+{% endfor %}{# iterate RZ #}
+{% for VN in vxlan %}
+set routing-instances evpn-1 protocols igmp-snooping vlan {{ VN.name }}
+set routing-instances evpn-1 protocols mld-snooping vlan {{ VN.name }}
+{% endfor %}

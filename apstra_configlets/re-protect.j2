@@ -1,7 +1,17 @@
-{# v1.0.1 2025-07-08 #}
-{# configlet name: re-protect #}
-{# configlet description: Apply a basic set of firewall filters to protect the routing engine #}
-{# configlet scope: role in all #}
+{#
+---
+name: re-protect
+summary: Apply a basic set of firewall filters to protect the routing engine
+config_style: junos
+section: top_level_hierarchical
+roles: [all]
+category: essential
+status: active
+changelog:
+  - 2025-07-08 v1.0.1
+---
+configlet scope: role in all
+-#}
 {# property sets #}
 {% set ssh_whitelist = [ "10.85.192.0/26", "10.104.0.0/16" ] %}
 {% set apstra_servers = [ "10.85.192.45/32", "10.85.192.46/32", "10.85.192.59/32" ] %}

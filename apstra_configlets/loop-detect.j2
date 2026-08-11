@@ -1,8 +1,23 @@
-{# v1.0.0 2024-09-16 #}
-{# configlet name: loop-detect #}
-{# configlet description: Configure loop detection on L2 edge interfaces #}
-{# reference: https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-vxlan-lightweight-leaf-server-loop-detection.html #}
-{# configlet scope: role in ["leaf"] #}
+{#
+---
+name: loop-detect
+summary: Configure loop detection on L2 edge interfaces
+config_style: junos
+section: top_level_hierarchical
+roles: [leaf]
+category: essential
+status: active
+requires:
+  vars: [interface]
+refs:
+  - https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-vxlan-lightweight-leaf-server-loop-detection.html
+updated: 2024-09-16
+changelog:
+  - 2024-09-16 v1.0.0
+---
+Enhanced loop detection is applied to l2edge interfaces that carry allowed
+vlans, using the last allowed vlan and a 10 second revert interval.
+-#}
 {% if interface != '' %}
 {% for intf in interface.values()|selectattr('role', 'eq', 'l2edge')|selectattr('allowed_vlans') %}
 {% if loop.first %}

@@ -1,4 +1,17 @@
-{# role in ["leaf"] #}
+{#
+---
+name: mac-move-limit
+summary: Limit MAC moves on VXLAN VLANs and log violations
+config_style: junos
+section: top_level_hierarchical
+roles: [leaf]
+category: misc
+status: active
+requires:
+  vars: [vlan]
+---
+Applies to virtual networks whose implementation type is vxlan.
+-#}
 vlans {
 {% for _, vn in vlan.items() %}
 {% if vn.impl_type == 'vxlan' %}
