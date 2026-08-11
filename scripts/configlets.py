@@ -15,6 +15,9 @@ Usage:
     python scripts/configlets.py check     # validate headers, exit 1 on error
     python scripts/configlets.py readme    # regenerate apstra_configlets/README.md
     python scripts/configlets.py list      # dump parsed metadata as JSON
+
+Pass --dir to point any subcommand at another configlet directory, such as a
+customer engagement repo.
 """
 
 from __future__ import annotations
@@ -30,8 +33,7 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CONFIGLET_DIR = REPO_ROOT / "apstra_configlets"
-README = CONFIGLET_DIR / "README.md"
+DEFAULT_CONFIGLET_DIR = REPO_ROOT / "apstra_configlets"
 
 # Files prefixed with META_PREFIX are documentation or shared partials, not
 # deployable configlets: they are skipped by every subcommand.
@@ -229,9 +231,9 @@ def _check_enum(
         level.append(f"invalid {key} {value!r} (expected one of {sorted(allowed)})")
 
 
-def collect() -> list[Configlet]:
+def collect(configlet_dir: Path) -> list[Configlet]:
     configlets = []
-    for path in sorted(CONFIGLET_DIR.glob("*.j2")):
+    for path in sorted(configlet_dir.glob("*.j2")):
         if path.name.startswith(META_PREFIX):
             continue
         cfg = parse(path)
@@ -272,7 +274,7 @@ def cmd_list(configlets: list[Configlet]) -> int:
     return 0
 
 
-def cmd_readme(configlets: list[Configlet]) -> int:
+def cmd_readme(configlets: list[Configlet], configlet_dir: Path) -> int:
     lines = [
         "# Configlets",
         "",
@@ -310,11 +312,9 @@ def cmd_readme(configlets: list[Configlet]) -> int:
         ]
         lines.append("")
 
-    README.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
-    print(
-        f"wrote {README.relative_to(REPO_ROOT)}: "
-        f"{len(described)} described, {len(legacy)} legacy"
-    )
+    readme = configlet_dir / "README.md"
+    readme.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
+    print(f"wrote {readme}: {len(described)} described, {len(legacy)} legacy")
     return 0
 
 
@@ -333,15 +333,23 @@ def _annotations(cfg: Configlet) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("command", choices=["check", "readme", "list"])
+    parser.add_argument(
+        "--dir",
+        type=Path,
+        default=DEFAULT_CONFIGLET_DIR,
+        help="configlet directory (default: apstra_configlets in this repo)",
+    )
     args = parser.parse_args()
 
-    if not CONFIGLET_DIR.is_dir():
-        print(f"configlet directory not found: {CONFIGLET_DIR}", file=sys.stderr)
+    configlet_dir = args.dir.expanduser().resolve()
+    if not configlet_dir.is_dir():
+        print(f"configlet directory not found: {configlet_dir}", file=sys.stderr)
         return 2
 
-    configlets = collect()
-    commands = {"check": cmd_check, "readme": cmd_readme, "list": cmd_list}
-    return commands[args.command](configlets)
+    configlets = collect(configlet_dir)
+    if args.command == "readme":
+        return cmd_readme(configlets, configlet_dir)
+    return {"check": cmd_check, "list": cmd_list}[args.command](configlets)
 
 
 if __name__ == "__main__":
