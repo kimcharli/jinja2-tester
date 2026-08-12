@@ -1,0 +1,66 @@
+{#
+---
+name: irb-n-ip
+summary: Additional IPv4 prefixes on an IRB, driven by VN tags
+config_style: junos
+section: top_level_set_delete
+roles: [leaf]
+category: misc
+status: active
+requires:
+  vars: [vxlan, vlan, role]
+  tags: ['irb-ip/<address>/<len>']
+author: kimcharli@gmail.com
+updated: 2026-08-11
+changelog:
+  - 2026-08-11 implement tag-driven multi-prefix IRB
+---
+Apstra models one gateway prefix per Virtual Network. This configlet adds
+further IPv4 prefixes to an IRB for the VLANs that need more than one.
+
+Attach one tag per extra prefix to the VN, prefix length included:
+
+  irb-ip/10.0.200.9/24
+  irb-ip/192.168.20.1/24
+
+No ordinal in the tag - Junos does not order addresses, and one tag per
+address means adding or removing one never renumbers the others. Tags are
+rendered sorted so the pushed diff is stable across regenerations.
+
+The Apstra anycast gateway is re-stated first as `primary`. Junos otherwise
+elects the numerically lowest address on the interface as primary, so adding a
+lower extra prefix would silently move the source address of locally-generated
+traffic off the gateway.
+
+No routing-instance loop: the address is set under [edit interfaces], and
+Apstra has already bound irb.<vlan_id> into its Routing Zone.
+
+Leaf-only, tested on the first guard line so spines and access switches skip
+the VN loop entirely. IRB_IP_TAG is deliberately set *above* that guard: a
+{% set %} inside an {% if %} is reported as a missing configlet variable by the
+Apstra validator, so moving it inside would fail the load. The `roles:` key
+above is metadata and does not gate anything.
+
+A tag carries one anycast address, so the identical value lands on every leaf
+the VN is bound to. There is no per-leaf address and no virtual-gateway-address
+on the extra prefixes - they are gateway-only. A tag cannot express a per-leaf
+unique address, so a prefix that needs one (an OSPF or BGP adjacency sourced
+from that subnet) is out of scope for this configlet.
+-#}
+{% set IRB_IP_TAG = 'irb-ip/' %}
+{% if role == 'leaf' %}{# LEAF_ONLY #}
+{% for vn in vxlan.values() | sort(attribute='vlan_id') %}{# VXLAN_DICT #}
+{% set ns = namespace(ips=[]) %}
+{% for tag in vn.tags | default([], True) | sort %}
+{% if tag.startswith(IRB_IP_TAG) %}{% set ns.ips = ns.ips + [tag.split('/', 1)[1]] %}{% endif %}
+{% endfor %}
+{# vlan_value is a read-only alias for the native entry; vxlan/vlan are not modified #}
+{% set vlan_value = vlan[vn.vlan_id | string] %}
+{% if ns.ips %}{# TAGGED_VN #}
+set interfaces irb unit {{ vn.vlan_id }} family inet address {{ vlan_value.fhrp_ipv4_address }}/{{ vlan_value.ipv4_prefixlen }} primary
+{% for ip in ns.ips %}
+set interfaces irb unit {{ vn.vlan_id }} family inet address {{ ip }}
+{% endfor %}
+{% endif %}{# TAGGED_VN #}
+{% endfor %}{# VXLAN_DICT #}
+{% endif %}{# LEAF_ONLY #}
