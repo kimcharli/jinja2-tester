@@ -11,7 +11,7 @@ requires:
   vars: [system_tags, security_zones, vxlan, vlan]
   tags: [ospf, ospf/passive, ospf-export-static, ospf-export-default]
 author: kimcharli@gmail.com
-updated: 2026-08-12
+updated: 2026-08-13
 ---
 Tag based OSPF configlet.
 
@@ -30,6 +30,7 @@ OSPF configured when
 {% set OSPF_AREA = '0.0.0.0' %}
 {% set OSPF_MTU = 1500 %}
 {% set OSPF_COMMUNITY = '7:30003' %}
+{% set VRF_LOOP_PREFIX = '192.168.249.0/26' %}
 
 {# 1. Scan security_zones upfront to check tag presence #}
 {% set static_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_STATIC_TAG) | list %}
@@ -50,6 +51,8 @@ set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF from com
 set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF then reject
 set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC from protocol static
 set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC then accept
+set policy-options policy-statement OSPF-EXPORT-STATIC term VRF_LO0_PREFIX from route-filter {{ VRF_LOOP_PREFIX }} orlonger
+set policy-options policy-statement OSPF-EXPORT-STATIC term VRF_LO0_PREFIX then accept
 {% endif %}
 
 {% if default_check %}
@@ -59,6 +62,8 @@ set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from
 set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
 set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then external type 1
 set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then accept
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term VRF_LO0_PREFIX from route-filter {{ VRF_LOOP_PREFIX }} orlonger
+set policy-options policy-statement OSPF-EXPORT-DEFAULT term VRF_LO0_PREFIX then accept
 {% endif %}
 
 {#- 4. Iterate security_zones for routing-instance & interface config #}
@@ -76,6 +81,11 @@ set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
+{% if static_check %}
+set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-STATIC
+{% elif default_check %}
+set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-DEFAULT
+{% endif %}
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export IMPORT-FROM-OSPF
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
