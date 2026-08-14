@@ -11,7 +11,7 @@ requires:
   vars: [system_tags, security_zones, vxlan, vlan]
   tags: [ospf, ospf/passive, ospf-export-static, ospf-export-default]
 author: kimcharli@gmail.com
-updated: 2026-08-13
+updated: 2026-08-14
 ---
 Tag based OSPF configlet.
 
@@ -81,9 +81,9 @@ set policy-options policy-statement OSPF-EXPORT-DEFAULT term VRF_LO0_PREFIX then
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
-{% if static_check %}
+{% if OSPF_EXPORT_STATIC_TAG in sz_value.tags %}
 set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-STATIC
-{% elif default_check %}
+{% elif OSPF_EXPORT_DEFAULT_TAG in sz_value.tags %}
 set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-DEFAULT
 {% endif %}
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
