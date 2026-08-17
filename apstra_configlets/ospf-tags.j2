@@ -11,7 +11,7 @@ requires:
   vars: [system_tags, security_zones, vxlan, vlan]
   tags: [ospf, ospf/passive, ospf-export-static, ospf-export-default]
 author: kimcharli@gmail.com
-updated: 2026-08-14
+updated: 2026-08-17
 ---
 Tag based OSPF configlet.
 
@@ -40,11 +40,16 @@ OSPF configured when
 {%- if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
 
 {#- 2. Global Import Policy & Community #}
-set policy-options policy-statement IMPORT-FROM-OSPF term EVPN_TO_OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
-set policy-options policy-statement IMPORT-FROM-OSPF term EVPN_TO_OSPF then reject
-set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF from protocol ospf
-set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then community add FROM_OSPF
-set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then accept
+set policy-options policy-statement OSPF-TO-EVPN term EVPN_TO_OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
+set policy-options policy-statement OSPF-TO-EVPN term EVPN_TO_OSPF then reject
+set policy-options policy-statement OSPF-TO-EVPN term OSPF-TO-EVPN from protocol ospf
+set policy-options policy-statement OSPF-TO-EVPN term OSPF-TO-EVPN then community add FROM_OSPF
+set policy-options policy-statement OSPF-TO-EVPN term OSPF-TO-EVPN then accept
+
+set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
+set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then reject
+set policy-options policy-statement IMPORT-FROM-OSPF term else then community add FROM_OSPF
+set policy-options policy-statement IMPORT-FROM-OSPF term else then accept
 set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
 
 {# 3. Render policy-statements once at top-level if needed #}
@@ -83,13 +88,14 @@ set policy-options policy-statement OSPF-EXPORT-DEFAULT term EVPN_TO_OSPF then a
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
+set routing-instances {{ sz_name }} protocols ospf import IMPORT-FROM-OSPF
 {% if OSPF_EXPORT_STATIC_TAG in sz_value.tags %}
 set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-STATIC
 {% elif OSPF_EXPORT_DEFAULT_TAG in sz_value.tags %}
 set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-DEFAULT
 {% endif %}
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
-set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export IMPORT-FROM-OSPF
+set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export OSPF-TO-EVPN
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 {% endif %}{# SZ_FIRST #}
 {# passive is the more specific tag: check it first, so a VN tagged both 'ospf' and 'ospf/passive' renders passive #}
