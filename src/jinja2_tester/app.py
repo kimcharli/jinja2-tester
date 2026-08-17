@@ -3,10 +3,14 @@ import os
 import socket
 import time
 
+import requests
+import urllib3
 import yaml
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from jinja2 import Environment, exceptions
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
 
@@ -27,6 +31,16 @@ def is_allowed_data_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_DATA_EXTENSIONS
 
 
+def jinja_contains(value, item):
+    """Custom Jinja2 test to check if value contains item."""
+    if value is None:
+        return False
+    try:
+        return item in value
+    except TypeError:
+        return False
+
+
 def validate_template(template_str, trim_blocks=True, lstrip_blocks=True):
     try:
         env = Environment(
@@ -35,6 +49,7 @@ def validate_template(template_str, trim_blocks=True, lstrip_blocks=True):
             lstrip_blocks=lstrip_blocks,
             extensions=["jinja2.ext.do"],
         )
+        env.tests["contains"] = jinja_contains
         env.parse(template_str)
         return True, "Template syntax is valid"
     except exceptions.TemplateSyntaxError as e:
@@ -50,6 +65,7 @@ def render_template_string(template_str, data, trim_blocks=True, lstrip_blocks=T
             lstrip_blocks=lstrip_blocks,
             extensions=["jinja2.ext.do"],
         )
+        env.tests["contains"] = jinja_contains
         template = env.from_string(template_str)
         return True, template.render(**data)
     except Exception as e:
@@ -274,6 +290,224 @@ def render():
         )
 
 
+def get_apstra_session(ip, port, username, password):
+    """Helper to authenticate and return an active requests Session."""
+    session = requests.Session()
+    session.verify = False  # Support self-signed certs
+    url = f"https://{ip}:{port}"
+
+    # Try the standard /api/aaa/login endpoint first, fallback to /api/user/login
+    login_url = f"{url}/api/aaa/login"
+    try:
+        login_res = session.post(
+            login_url,
+            json={"username": username, "password": password},
+            timeout=8,
+        )
+        login_res.raise_for_status()
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code in (404, 405):
+            fallback_url = f"{url}/api/user/login"
+            login_res = session.post(
+                fallback_url,
+                json={"username": username, "password": password},
+                timeout=8,
+            )
+            login_res.raise_for_status()
+        else:
+            raise
+
+    # Extract the token
+    token_data = login_res.json()
+    token = (
+        token_data.get("token")
+        or token_data.get("authtoken")
+        or token_data.get("auth_token")
+    )
+    if token:
+        session.headers.update({"AuthToken": token, "Authorization": f"Bearer {token}"})
+
+    return session, url
+
+
+@app.route("/apstra/blueprints", methods=["POST"])
+def apstra_blueprints():
+    data = request.json or {}
+    try:
+        session, url = get_apstra_session(
+            data["ip"], data["port"], data["username"], data["password"]
+        )
+        res = session.get(f"{url}/api/blueprints", timeout=8)
+        res.raise_for_status()
+
+        blueprints_data = res.json()
+        blueprints = []
+
+        if isinstance(blueprints_data, list):
+            for bp in blueprints_data:
+                if isinstance(bp, dict):
+                    bp_id = bp.get("id")
+                    if bp_id:
+                        blueprints.append(
+                            {"id": bp_id, "label": bp.get("label") or bp_id}
+                        )
+        elif isinstance(blueprints_data, dict):
+            if "items" in blueprints_data and isinstance(
+                blueprints_data["items"], list
+            ):
+                for bp in blueprints_data["items"]:
+                    if isinstance(bp, dict):
+                        bp_id = bp.get("id")
+                        if bp_id:
+                            blueprints.append(
+                                {"id": bp_id, "label": bp.get("label") or bp_id}
+                            )
+            else:
+                for bp_id, bp_val in blueprints_data.items():
+                    if isinstance(bp_val, dict):
+                        blueprints.append(
+                            {
+                                "id": bp_id,
+                                "label": bp_val.get("label") or bp_id,
+                            }
+                        )
+                    elif isinstance(bp_val, str):
+                        blueprints.append({"id": bp_id, "label": bp_val})
+
+        return jsonify({"blueprints": blueprints})
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve blueprints: {str(e)}"}), 500
+
+
+@app.route("/apstra/systems", methods=["POST"])
+def apstra_systems():
+    data = request.json or {}
+    try:
+        session, url = get_apstra_session(
+            data["ip"], data["port"], data["username"], data["password"]
+        )
+        res = session.get(
+            f"{url}/api/blueprints/{data['blueprint_id']}/systems", timeout=8
+        )
+        res.raise_for_status()
+
+        systems_data = res.json()
+        systems = []
+
+        if isinstance(systems_data, list):
+            for sys_item in systems_data:
+                if isinstance(sys_item, dict):
+                    sys_id = sys_item.get("id") or sys_item.get("system_id")
+                    label = sys_item.get("hostname") or sys_item.get("label") or sys_id
+                    if sys_id:
+                        systems.append({"id": sys_id, "label": label})
+        elif isinstance(systems_data, dict):
+            if "items" in systems_data and isinstance(systems_data["items"], list):
+                for sys_item in systems_data["items"]:
+                    if isinstance(sys_item, dict):
+                        sys_id = sys_item.get("id") or sys_item.get("system_id")
+                        label = (
+                            sys_item.get("hostname") or sys_item.get("label") or sys_id
+                        )
+                        if sys_id:
+                            systems.append({"id": sys_id, "label": label})
+            else:
+                for sys_id, sys_val in systems_data.items():
+                    if isinstance(sys_val, dict):
+                        label = (
+                            sys_val.get("hostname") or sys_val.get("label") or sys_id
+                        )
+                        systems.append({"id": sys_id, "label": label})
+                    elif isinstance(sys_val, str):
+                        systems.append({"id": sys_id, "label": sys_val})
+
+        return jsonify({"systems": systems})
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve systems: {str(e)}"}), 500
+
+
+@app.route("/apstra/config-context", methods=["POST"])
+def apstra_config_context():
+    data = request.json or {}
+    try:
+        session, url = get_apstra_session(
+            data["ip"], data["port"], data["username"], data["password"]
+        )
+        bp_id = data["blueprint_id"]
+        srv_id = data["server_id"]
+        endpoint = f"{url}/api/blueprints/{bp_id}/systems/{srv_id}/config-context"
+        res = session.get(endpoint, timeout=10)
+        res.raise_for_status()
+
+        res_data = res.json()
+        context_data = res_data
+
+        # Resolve/unwrap "context" if nested in the response
+        if isinstance(res_data, dict):
+            inner_context = (
+                res_data.get("context")
+                or res_data.get("config_context")
+                or res_data.get("config-context")
+            )
+            if inner_context is not None:
+                if isinstance(inner_context, dict):
+                    context_data = inner_context
+                elif isinstance(inner_context, str):
+                    try:
+                        context_data = json.loads(inner_context)
+                    except json.JSONDecodeError:
+                        # Fallback if string is not valid JSON
+                        context_data = {"context": inner_context}
+
+        return jsonify({"config_context": context_data})
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch config context: {str(e)}"}), 500
+
+
+@app.route("/apstra/configlets", methods=["GET"])
+def apstra_configlets():
+    try:
+        # Resolve configlets directory path relative to app root
+        configlets_dir = os.path.abspath(
+            os.path.join(app.root_path, "..", "..", "apstra_configlets")
+        )
+        if not os.path.isdir(configlets_dir):
+            return jsonify({"error": "Configlets directory not found"}), 404
+
+        # List all .j2 files, ignoring files starting with metadata prefix "_"
+        files = sorted(
+            [
+                f
+                for f in os.listdir(configlets_dir)
+                if f.endswith(".j2") and not f.startswith("_")
+            ]
+        )
+        return jsonify({"configlets": files})
+    except Exception as e:
+        return jsonify({"error": f"Failed to list configlets: {str(e)}"}), 500
+
+
+@app.route("/apstra/configlet/<filename>", methods=["GET"])
+def apstra_configlet_content(filename):
+    try:
+        # Sanitize filename to prevent directory traversal
+        filename = os.path.basename(filename)
+        configlets_dir = os.path.abspath(
+            os.path.join(app.root_path, "..", "..", "apstra_configlets")
+        )
+        filepath = os.path.join(configlets_dir, filename)
+
+        if not os.path.isfile(filepath):
+            return jsonify({"error": "Configlet file not found"}), 404
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        return jsonify({"content": content})
+    except Exception as e:
+        return jsonify({"error": f"Failed to read configlet: {str(e)}"}), 500
+
+
 DEFAULT_PORT = 5001
 PORT_SCAN_RANGE = 10
 
@@ -288,6 +522,13 @@ def find_available_port(start_port, scan_range=PORT_SCAN_RANGE):
 
 
 def main():
+    # If the port was already chosen by the parent process, reuse it
+    # to prevent Flask's reloader subprocess from scanning and clashing
+    env_port = os.getenv("JINJA2_TESTER_PORT")
+    if env_port:
+        app.run(debug=True, port=int(env_port))
+        return
+
     port = int(os.getenv("PORT", DEFAULT_PORT))
     available = find_available_port(port)
     if available is None:
@@ -296,6 +537,8 @@ def main():
         return
     if available != port:
         print(f"Port {port} is in use, using port {available} instead")
+
+    os.environ["JINJA2_TESTER_PORT"] = str(available)
     app.run(debug=True, port=available)
 
 

@@ -224,6 +224,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Data format change handler
     dataFormatSelect.addEventListener('change', function() {
+        if (this.value === 'apstra') return;
+
         const content = dataInput.value.trim();
         if (!content) return;
 
@@ -369,4 +371,244 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for the checkboxes
     document.getElementById('trimBlocksToggle').addEventListener('change', debounceInput);
     document.getElementById('lstripBlocksToggle').addEventListener('change', debounceInput);
+
+    // --- Apstra Device Context Modal and Logic ---
+    const apstraModal = document.getElementById('apstraModal');
+    const closeApstraModal = document.getElementById('closeApstraModal');
+    const cancelApstraBtn = document.getElementById('cancelApstraBtn');
+    const connectApstraBtn = document.getElementById('connectApstraBtn');
+    const submitApstraBtn = document.getElementById('submitApstraBtn');
+
+    // Toggles and inputs
+    const toggleBpBtn = document.getElementById('toggleBlueprintInput');
+    const bpSelect = document.getElementById('apstraBlueprintSelect');
+    const bpDirect = document.getElementById('apstraBlueprintDirect');
+
+    const toggleSvBtn = document.getElementById('toggleServerInput');
+    const svSelect = document.getElementById('apstraServerSelect');
+    const svDirect = document.getElementById('apstraServerDirect');
+
+    // Load saved settings from localStorage
+    function loadSavedApstraSettings() {
+        const storedIp = localStorage.getItem('apstraIp');
+        const storedPort = localStorage.getItem('apstraPort');
+        const storedUsername = localStorage.getItem('apstraUsername');
+        if (storedIp) document.getElementById('apstraIp').value = storedIp;
+        if (storedPort) document.getElementById('apstraPort').value = storedPort;
+        if (storedUsername) document.getElementById('apstraUsername').value = storedUsername;
+    }
+
+    // Save settings to localStorage
+    function saveApstraSettings() {
+        localStorage.setItem('apstraIp', document.getElementById('apstraIp').value.trim());
+        localStorage.setItem('apstraPort', document.getElementById('apstraPort').value.trim());
+        localStorage.setItem('apstraUsername', document.getElementById('apstraUsername').value.trim());
+    }
+
+    // Show modal when "apstra" is selected
+    dataFormatSelect.addEventListener('change', function() {
+        if (this.value === 'apstra') {
+            loadSavedApstraSettings();
+            apstraModal.style.display = 'flex';
+        }
+    });
+
+    function hideModal() {
+        apstraModal.style.display = 'none';
+        dataFormatSelect.value = 'json'; // Reset select format to JSON
+    }
+
+    closeApstraModal.addEventListener('click', hideModal);
+    cancelApstraBtn.addEventListener('click', hideModal);
+
+    // Toggle manual vs list inputs
+    toggleBpBtn.addEventListener('click', () => {
+        if (bpSelect.style.display === 'none') {
+            bpSelect.style.display = 'block';
+            bpDirect.style.display = 'none';
+        } else {
+            bpSelect.style.display = 'none';
+            bpDirect.style.display = 'block';
+        }
+    });
+
+    toggleSvBtn.addEventListener('click', () => {
+        if (svSelect.style.display === 'none') {
+            svSelect.style.display = 'block';
+            svDirect.style.display = 'none';
+        } else {
+            svSelect.style.display = 'none';
+            svDirect.style.display = 'block';
+        }
+    });
+
+    // Connect to Controller and Load Blueprints
+    connectApstraBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const ip = document.getElementById('apstraIp').value.trim();
+        const port = document.getElementById('apstraPort').value.trim();
+        const username = document.getElementById('apstraUsername').value.trim();
+        const password = document.getElementById('apstraPassword').value;
+
+        if (!ip || !port || !username || !password) {
+            alert('IP, Port, Username and Password are required to connect.');
+            return;
+        }
+
+        saveApstraSettings();
+
+        connectApstraBtn.textContent = 'Connecting...';
+        connectApstraBtn.disabled = true;
+
+        fetch('/apstra/blueprints', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip, port, username, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else if (data.blueprints && data.blueprints.length > 0) {
+                // Populate Blueprint select and switch to dropdown mode
+                bpSelect.innerHTML = data.blueprints.map(bp => `<option value="${bp.id}">${bp.label} (${bp.id})</option>`).join('');
+                bpSelect.style.display = 'block';
+                bpDirect.style.display = 'none';
+                
+                // Trigger loading systems for the first blueprint
+                loadSystemsForBlueprint(bpSelect.value);
+            } else {
+                alert('No blueprints found on controller.');
+            }
+        })
+        .catch(err => alert('Connection failed: ' + err.message))
+        .finally(() => {
+            connectApstraBtn.textContent = 'Connect & Load Choices';
+            connectApstraBtn.disabled = false;
+        });
+    });
+
+    // Load systems when blueprint selection changes
+    bpSelect.addEventListener('change', function() {
+        loadSystemsForBlueprint(this.value);
+    });
+
+    function loadSystemsForBlueprint(blueprint_id) {
+        const ip = document.getElementById('apstraIp').value.trim();
+        const port = document.getElementById('apstraPort').value.trim();
+        const username = document.getElementById('apstraUsername').value.trim();
+        const password = document.getElementById('apstraPassword').value;
+
+        if (!blueprint_id) return;
+
+        fetch('/apstra/systems', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip, port, username, password, blueprint_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.systems && data.systems.length > 0) {
+                svSelect.innerHTML = data.systems.map(sys => `<option value="${sys.id}">${sys.label} (${sys.id})</option>`).join('');
+                svSelect.style.display = 'block';
+                svDirect.style.display = 'none';
+            } else {
+                svSelect.innerHTML = '<option value="">No systems found</option>';
+                svSelect.style.display = 'block';
+                svDirect.style.display = 'none';
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load systems:', err);
+        });
+    }
+
+    // Submit to fetch config-context
+    submitApstraBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const ip = document.getElementById('apstraIp').value.trim();
+        const port = document.getElementById('apstraPort').value.trim();
+        const username = document.getElementById('apstraUsername').value.trim();
+        const password = document.getElementById('apstraPassword').value;
+
+        // Resolve blueprint_id & server_id based on whether dropdown or manual is visible
+        const blueprint_id = bpSelect.style.display !== 'none' ? bpSelect.value : bpDirect.value.trim();
+        const server_id = svSelect.style.display !== 'none' ? svSelect.value : svDirect.value.trim();
+
+        if (!ip || !port || !blueprint_id || !server_id) {
+            alert('IP, Port, Blueprint ID, and Server ID are all required to fetch.');
+            return;
+        }
+
+        saveApstraSettings();
+
+        submitApstraBtn.textContent = 'Fetching Context...';
+        submitApstraBtn.disabled = true;
+
+        fetch('/apstra/config-context', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip, port, username, password, blueprint_id, server_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                // Populate the text editor with fetched context config
+                dataInput.value = JSON.stringify(data.config_context, null, 2);
+                dataFormatSelect.value = 'json'; // Switch selector format to JSON
+                apstraModal.style.display = 'none';
+                updateRenderedOutput(); // Render template
+            }
+        })
+        .catch(err => alert('Fetch failed: ' + err.message))
+        .finally(() => {
+            submitApstraBtn.textContent = 'Fetch Context';
+            submitApstraBtn.disabled = false;
+        });
+    });
+
+    // --- Load Configlets into Template Select Dropdown ---
+    const templateSelect = document.getElementById('templateSelect');
+
+    function loadConfigletsList() {
+        fetch('/apstra/configlets')
+        .then(res => res.json())
+        .then(data => {
+            if (data.configlets) {
+                data.configlets.forEach(filename => {
+                    const opt = document.createElement('option');
+                    opt.value = filename;
+                    opt.textContent = filename;
+                    templateSelect.appendChild(opt);
+                });
+            }
+        })
+        .catch(err => console.error('Failed to load configlets list:', err));
+    }
+
+    // Load list on startup
+    loadConfigletsList();
+
+    // Fetch template content on select change
+    templateSelect.addEventListener('change', function() {
+        const filename = this.value;
+        if (!filename) return;
+
+        fetch(`/apstra/configlet/${filename}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else if (data.content !== undefined) {
+                templateInput.value = data.content;
+                updateRenderedOutput(); // Render with the new template
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load configlet content:', err);
+            alert('Failed to load configlet content.');
+        });
+    });
 }); 

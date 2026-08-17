@@ -15,11 +15,7 @@ refs:
 ---
 Enhanced OISM only with EVPN/VXLAN ERB.
 
-INCOMPLETE - does not render. Known defects, to be fixed later:
-  - the OISM_RZ_DICT expression has unbalanced parentheses and a misplaced pipe
-    after selectattr('tags', 'exists'
-  - OISM_RZ_DICT is only assigned inside the 'if' branch but is iterated
-    unconditionally afterwards
+INCOMPLETE - known defects, to be fixed later:
   - OISM_PEG_LEAF_TAG, OISM_VN_TAG, MROUTE_PROTOCOL, IS_IGW_DEVICE and
     IS_OISM_LEAF are set but never used
 -#}
@@ -28,6 +24,8 @@ INCOMPLETE - does not render. Known defects, to be fixed later:
 {% set MROUTE_PROTOCOL = 'OSPF' %}{# OR inet.2 #}
 {% set OISM_RZ_TAG = 'OISM-RZ' %}{# Add TAG for OSIM Routing Zones. #}
 {% set OISM_VN_TAG = 'OISM-VN' %}
+{% set PIM_DISTRIBUTED_DR_TAG = 'PIM-DISTRIBUTED-DR' %}
+{% set PIM_ACCEPT_REMOTE_SOURCE_TAG = 'PIM-ACCEPT-REMOTE-SOURCE' %}
 {% set IS_EVO = 'EVO' in os %}
 {% set OISM_RZ_MAP = {
     'FIS': {
@@ -36,7 +34,7 @@ INCOMPLETE - does not render. Known defects, to be fixed later:
 }
 %}
 {% set IS_IGW_DEVICE = evpn_interconnect.label %}
-{% set OISM_RZ_DICT = security_zones | selectattr('tags', 'exists'| selectattr(OISM_RZ_TAG, 'in', security_zones.tags) | list %}
+{% set OISM_RZ_DICT = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OISM_RZ_TAG) | list %}
 {% if OISM_RZ_DICT%}{# OISM RZ present #}
 {% set IS_OISM_LEAF = True %}
 set forwarding-options multicast-replication evpn irb enhanced-oism

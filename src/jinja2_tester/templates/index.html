@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Jinja2 Template Validator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1.1">
 </head>
 <body>
     <div class="main-container">
@@ -14,6 +14,9 @@
                 <div class="input-section">
                     <h3>Template Input</h3>
                     <div class="input-controls">
+                        <select id="templateSelect" class="format-select" style="margin-right: auto; max-width: 250px;">
+                            <option value="">-- Choose Configlet --</option>
+                        </select>
                         <button id="downloadTemplateBtn" class="secondary-button">Download</button>
                         <button id="uploadTemplateBtn" class="secondary-button">Upload</button>
                         <input type="file" id="templateFile" accept=".j2,.jinja,.jinja2,.html,.txt" style="display: none;">
@@ -41,6 +44,7 @@
                         <select id="dataFormatSelect" class="format-select">
                             <option value="json">JSON</option>
                             <option value="yaml">YAML</option>
+                            <option value="apstra">Device Context (Apstra)</option>
                         </select>
                         <button id="formatDataBtn" class="secondary-button">Format</button>
                         <button id="downloadDataBtn" class="secondary-button">Download</button>
@@ -91,6 +95,69 @@
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <!-- Apstra Modal Overlay -->
+    <div id="apstraModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Apstra Device Context Fetcher</h3>
+                <button id="closeApstraModal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Controller IP & Port -->
+                <div class="form-row split">
+                    <div class="form-group">
+                        <label for="apstraIp">Controller IP</label>
+                        <input type="text" id="apstraIp" placeholder="e.g. 192.168.1.100" class="modal-input">
+                    </div>
+                    <div class="form-group" style="width: 100px; flex-grow: 0;">
+                        <label for="apstraPort">Port</label>
+                        <input type="text" id="apstraPort" value="443" class="modal-input">
+                    </div>
+                </div>
+
+                <!-- Credentials -->
+                <div class="form-row split">
+                    <div class="form-group">
+                        <label for="apstraUsername">Username</label>
+                        <input type="text" id="apstraUsername" placeholder="admin" class="modal-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="apstraPassword">Password</label>
+                        <input type="password" id="apstraPassword" class="modal-input">
+                    </div>
+                </div>
+
+                <!-- Connection Actions -->
+                <button id="connectApstraBtn" class="secondary-button" style="width: 100%; margin-bottom: 15px;">Connect & Load Choices</button>
+
+                <!-- Blueprint ID selection/direct entry -->
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Blueprint ID</label>
+                    <div class="input-choice-row">
+                        <select id="apstraBlueprintSelect" class="modal-select" style="display: none;"></select>
+                        <input type="text" id="apstraBlueprintDirect" placeholder="Enter Blueprint ID manually" class="modal-input">
+                        <button id="toggleBlueprintInput" class="small-toggle-btn" title="Toggle manual input/selection">✏️</button>
+                    </div>
+                </div>
+
+                <!-- Server ID selection/direct entry -->
+                <div class="form-group">
+                    <label>Server/System ID</label>
+                    <div class="input-choice-row">
+                        <select id="apstraServerSelect" class="modal-select" style="display: none;"></select>
+                        <input type="text" id="apstraServerDirect" placeholder="Enter Server ID manually" class="modal-input">
+                        <button id="toggleServerInput" class="small-toggle-btn" title="Toggle manual input/selection">✏️</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelApstraBtn" class="secondary-button">Cancel</button>
+                <button id="submitApstraBtn" class="primary-button">Fetch Context</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}?v=1.1"></script>
 </body>
 </html> 

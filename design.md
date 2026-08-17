@@ -658,4 +658,4 @@ This design document now includes comprehensive specifications for data format i
 
 ## TODO
 
-- [ ] Add `contains` custom test function (Jinja2 `tests` extension)
+- [x] Add `contains` custom test function (Jinja2 `tests` extension)
