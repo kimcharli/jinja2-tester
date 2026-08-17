@@ -40,37 +40,37 @@ OSPF configured when
 {%- if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
 
 {#- 2. Global Import Policy & Community #}
-set policy-options policy-statement OSPF-TO-EVPN term EVPN_TO_OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
-set policy-options policy-statement OSPF-TO-EVPN term EVPN_TO_OSPF then reject
-set policy-options policy-statement OSPF-TO-EVPN term OSPF-TO-EVPN from protocol ospf
-set policy-options policy-statement OSPF-TO-EVPN term OSPF-TO-EVPN then community add FROM_OSPF
-set policy-options policy-statement OSPF-TO-EVPN term OSPF-TO-EVPN then accept
-
-set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
-set policy-options policy-statement IMPORT-FROM-OSPF term IMPORT-FROM-OSPF then reject
-set policy-options policy-statement IMPORT-FROM-OSPF term else then community add FROM_OSPF
-set policy-options policy-statement IMPORT-FROM-OSPF term else then accept
+{# #### CUSTOMIZE: Routes should be originated from the fabric. Should not be imported back. #}
+set policy-options route-filter-list FABRIC-TO-OSPF 192.168.249.0/26 orlonger
 set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
+
+set policy-options policy-statement VRF-OSPF-TO-EVPN term VRF-OSPF-TO-EVPN from protocol ospf
+set policy-options policy-statement VRF-OSPF-TO-EVPN term VRF-OSPF-TO-EVPN then accept
+
+set policy-options policy-statement OSPF-TO-VRF term OSPF-TO-VRF from route-filter-list FABRIC-TO-OSPF
+set policy-options policy-statement OSPF-TO-VRF term OSPF-TO-VRF then reject
+set policy-options policy-statement OSPF-TO-VRF term else then community add FROM_OSPF
+set policy-options policy-statement OSPF-TO-VRF term else then accept
 
 {# 3. Render policy-statements once at top-level if needed #}
 {% if static_check %}
-set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF from community FROM_OSPF
-set policy-options policy-statement OSPF-EXPORT-STATIC term REJECT-OSPF then reject
-set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC from protocol static
-set policy-options policy-statement OSPF-EXPORT-STATIC term STATIC then accept
-set policy-options policy-statement OSPF-EXPORT-STATIC term EVPN_TO_OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
-set policy-options policy-statement OSPF-EXPORT-STATIC term EVPN_TO_OSPF then accept
+set policy-options policy-statement VRF-TO-OSPF-STATIC term REJECT-OSPF from community FROM_OSPF
+set policy-options policy-statement VRF-TO-OSPF-STATIC term REJECT-OSPF then reject
+set policy-options policy-statement VRF-TO-OSPF-STATIC term STATIC from protocol static
+set policy-options policy-statement VRF-TO-OSPF-STATIC term STATIC then accept
+set policy-options policy-statement VRF-TO-OSPF-STATIC term EVPN_TO_OSPF from route-filter-list FABRIC_TO_OSPF
+set policy-options policy-statement VRF-TO-OSPF-STATIC term EVPN_TO_OSPF then accept
 {% endif %}
 
 {% if default_check %}
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF from community FROM_OSPF
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term REJECT-OSPF then reject
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from protocol static
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then external type 1
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term STATIC-DEFAULT then accept
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term EVPN_TO_OSPF from route-filter {{ EVPN_TO_OSPF }} orlonger
-set policy-options policy-statement OSPF-EXPORT-DEFAULT term EVPN_TO_OSPF then accept
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term REJECT-OSPF from community FROM_OSPF
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term REJECT-OSPF then reject
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT from protocol static
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT then external type 1
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT then accept
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term EVPN_TO_OSPF from route-filter-list FABRIC_TO_OSPF
+set policy-options policy-statement VRF-TO-OSPF-DEFAULT term EVPN_TO_OSPF then accept
 {% endif %}
 
 {#- 4. Iterate security_zones for routing-instance & interface config #}
@@ -88,14 +88,14 @@ set policy-options policy-statement OSPF-EXPORT-DEFAULT term EVPN_TO_OSPF then a
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
-set routing-instances {{ sz_name }} protocols ospf import IMPORT-FROM-OSPF
+set routing-instances {{ sz_name }} protocols ospf import OSPF-TO-VRF
 {% if OSPF_EXPORT_STATIC_TAG in sz_value.tags %}
-set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-STATIC
+set routing-instances {{ sz_name }} protocols ospf export VRF-TO-OSPF-STATIC
 {% elif OSPF_EXPORT_DEFAULT_TAG in sz_value.tags %}
-set routing-instances {{ sz_name }} protocols ospf export OSPF-EXPORT-DEFAULT
+set routing-instances {{ sz_name }} protocols ospf export VRF-TO-OSPF-DEFAULT
 {% endif %}
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
-set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export OSPF-TO-EVPN
+set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export VRF-OSPF-TO-EVPN
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 {% endif %}{# SZ_FIRST #}
 {# passive is the more specific tag: check it first, so a VN tagged both 'ospf' and 'ospf/passive' renders passive #}
