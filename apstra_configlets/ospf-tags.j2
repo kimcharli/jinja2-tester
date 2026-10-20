@@ -17,10 +17,12 @@ Tag based OSPF configlet.
 
 OSPF configured when:
   - system_tags has 'ospf'
+  - security_zones.<rz>.tags has 'ospf'
   - vxlan.<n>.tags has 'ospf' (active) or 'ospf/passive'
   - vlan.<n> has ipv4_address or fhrp_ipv4_address (anycast IRB)
 -#}
 {% set SYSTEM_OSPF_TAG = 'ospf' %}
+{% set RZ_OSPF_TAG = 'ospf' %}
 {% set OSPF_ACTIVE_TAG = 'ospf' %}
 {% set OSPF_PASSIVE_TAG = 'ospf/passive' %}
 {% set OSPF_AREA = '0.0.0.0' %}
@@ -50,6 +52,7 @@ set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC then accept
 {# 2. Per-Routing-Zone OSPF & IRB Config #}
 {% for sz_name, sz_value in security_zones.items() %}{# RZ_LOOP #}
 {% set ospf_vxlans = namespace(dict={}) %}
+{% if sz_value.tags and RZ_OSPF_TAG in sz_value.tags %}{# RZ_TAG #}
 {% for vn in vxlan.values() %}{# VXLAN_DICT #}
 {# Require IRB IPv4 (or anycast FHRP IPv4) on the bound VLAN so loop.first stays accurate #}
 {% if vn.vrf_name == sz_name and vn.tags and (OSPF_ACTIVE_TAG in vn.tags or OSPF_PASSIVE_TAG in vn.tags) and (vlan[vn.vlan_id | string].ipv4_address or vlan[vn.vlan_id | string].fhrp_ipv4_address) %}
@@ -72,5 +75,6 @@ set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interfac
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} mtu {{ OSPF_MTU }}
 {% endif %}
 {% endfor %}{# OSPF_VLANS #}
+{% endif %}{# RZ_TAG #}
 {% endfor %}{# RZ_LOOP #}
 {% endif %}{# SYSTEM_TAGS #}
