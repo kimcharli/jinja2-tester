@@ -14,9 +14,9 @@ Considered essential for basic operation.
 
 - `core-isolation.j2` — Core isolation interface shutdown via network-isolation service tracking (leaf/access)
 - `loop-detect.j2` — Configure loop detection on L2 edge interfaces (leaf)
-- `no-rstp.j2` — Remove RSTP from tagged interfaces (leaf/access)
+- `no-rstp.j2` — Remove RSTP from tagged interfaces (leaf/access; tags: no-rstp)
 - `re-protect.j2` — Apply a basic set of firewall filters to protect the routing engine (all)
-- `system-base.j2` — Base system config - login, ssh, syslog, dns, ntp, radius (all, example)
+- `system-base.j2` — Base system config - login, ssh, syslog, dns, ntp, radius (all; example)
 
 ## Essential (In Certain Cases)
 
@@ -28,36 +28,37 @@ Essential under specific circumstances.
 
 Optional functionality.
 
-- `analyzer.j2` — Mirror tagged interfaces to a collector using an analyzer (all)
-- `device-licenses.j2` — Apply Juniper device license keys keyed by serial number (all, example)
+- `analyzer.j2` — Mirror tagged interfaces to a collector using an analyzer (all; tags: mirror)
+- `device-licenses.j2` — Apply Juniper device license keys keyed by serial number (all; example)
 
 ## Miscellaneous
 
 Other configlets for various purposes.
 
-- `DO-NOT-USE-no-prepend-global-as.j2` — Associate no-prepend-global-as on VRF BGP sessions (all, not-applied)
-- `OISM-TAGS.j2` — Enhanced OISM for EVPN/VXLAN ERB driven by tags (leaf, incomplete)
-- `OISM-v0.j2` — OISM for server leafs and border leafs on Apstra 5.1+ (leaf)
+- `DO-NOT-USE-no-prepend-global-as.j2` — Associate no-prepend-global-as on VRF BGP sessions (all; not-applied)
+- `OISM-TAGS.j2` — Enhanced OISM for EVPN/VXLAN ERB driven by tags (leaf; tags: OISM-PEG-LEAF, OISM-LEAF, OISM-RZ, OISM-VN; incomplete)
+- `OISM-v0.j2` — OISM for server leafs and border leafs on Apstra 5.1+ (leaf; tags: border-leaf)
 - `all-irb-down.j2` — Disable IRB units of VXLAN VLANs that have an FHRP address (all)
-- `aos-version-example.j2` — Example of gating configuration on aos_version to disable ARP suppression (all, example)
+- `aos-version-example.j2` — Example of gating configuration on aos_version to disable ARP suppression (all; example)
 - `cos-common.j2` — Common class-of-service classifiers, forwarding classes, and host-outbound traffic (leaf)
 - `cos-egress.j2` — Egress class-of-service drop profiles, scheduler maps, and schedulers (all)
 - `cos-ingress.j2` — Ingress classification, policer, and CoS rewrite rules (all)
 - `cut-end-systems.j2` — Disable all non-fabric interfaces via an apply-group (leaf)
-- `cut-right-spines.j2` — Disable uplinks toward right-side spines via an apply-group (leaf)
+- `cut-right-spines.j2` — Disable uplinks toward right-side spines via an apply-group (leaf; tags: right-spine)
 - `distributed-dr.j2` — Static PIM RP and distributed-DR on FHRP-enabled IRBs (all)
-- `em0-leak.j2` — Leak em0 management routes between the default and transit VRFs (spine/leaf)
+- `em0-leak.j2` — Leak em0 management routes between the default and transit VRFs (spine/leaf; tags: border-leaf)
 - `evo-packet-forwarding-option.j2` — Set the host forwarding profile on EVO QFX5130 and QFX5700 (all)
 - `igmp-snooping.j2` — Enable immediate-leave for IGMP and MLD snooping on all VLANs (all)
+- `irb-n-ip.j2` — Additional IPv4 prefixes on an IRB, driven by VN tags (leaf; tags: irb-ip/<address>/<len>)
 - `mac-move-limit.j2` — Limit MAC moves on VXLAN VLANs and log violations (leaf)
-- `mgmt-leak-incomplete.j2` — Leak routes between the infrastructure VRF and the management routing instance (all, incomplete)
-- `mirror.j2` — Mirror tagged interfaces to a port analyzer (all)
-- `mode-fec.j2` — Set FEC108 gigether-options on tagged interfaces (all)
-- `no-arp-suppression.j2` — Disable ARP suppression on VXLAN virtual networks (all, example)
+- `mgmt-leak-incomplete.j2` — Leak routes between the infrastructure VRF and the management routing instance (all; incomplete)
+- `mirror.j2` — Mirror tagged interfaces to a port analyzer (all; tags: mirror)
+- `mode-fec.j2` — Set FEC108 gigether-options on tagged interfaces (all; tags: fec108)
+- `no-arp-suppression.j2` — Disable ARP suppression on VXLAN virtual networks (all; example)
 - `non-evo-sflow.j2` — Configure sFlow sampling and collector on non-EVO Junos devices (all)
-- `ospf-tags.j2` — Tag based OSPF for routing zones and IRB interfaces (leaf)
-- `port-mirroring.j2` — Port mirroring of tagged family ethernet-switching interfaces (all, not-applied)
+- `ospf-tags.j2` — Tag based OSPF for routing zones and IRB interfaces (leaf; tags: ospf, ospf/passive)
+- `port-mirroring.j2` — Port mirroring of tagged family ethernet-switching interfaces (all; tags: port-mirroring; not-applied)
 - `sflow-snmpv3.j2` — sFlow export with SNMPv3 for collector interface enrichment (all)
 - `sn-to-resource-id.j2` — Map device serial number to a resource id in the SNMP description (all)
-- `snmp-v2.j2` — SNMP v2 community, client list, and trap group settings (all, example)
+- `snmp-v2.j2` — SNMP v2 community, client list, and trap group settings (all; example)
 - `snmp-v3.j2` — SNMP v3 with generated authentication and privacy keys (all)

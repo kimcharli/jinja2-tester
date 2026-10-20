@@ -30,6 +30,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from jinja2 import Environment, exceptions as jinja_exceptions, meta as jinja_meta
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -219,6 +220,53 @@ def validate(cfg: Configlet) -> None:
         if isinstance(ref, str) and not ref.startswith(("http://", "https://")):
             cfg.warnings.append(f"ref is not a URL: {ref}")
 
+    _validate_jinja(cfg)
+
+
+def _validate_jinja(cfg: Configlet) -> None:
+    text = cfg.path.read_text(encoding="utf-8")
+    env = Environment(
+        trim_blocks=True,
+        lstrip_blocks=True,
+        extensions=["jinja2.ext.do"],
+    )
+    env.tests["contains"] = lambda c, item: (item in c) if c is not None else False
+
+    try:
+        ast = env.parse(text)
+    except jinja_exceptions.TemplateSyntaxError as exc:
+        cfg.errors.append(f"Jinja syntax error (line {exc.lineno}): {exc.message}")
+        return
+
+    meta = cfg.meta or {}
+    is_incomplete = meta.get("status") == "incomplete"
+    target = cfg.warnings if is_incomplete else cfg.errors
+
+    undeclared = jinja_meta.find_undeclared_variables(ast)
+    declared_vars = set((meta.get("requires") or {}).get("vars") or [])
+    missing_vars = sorted(undeclared - declared_vars)
+    extra_vars = sorted(declared_vars - undeclared)
+    if missing_vars:
+        target.append(
+            f"undeclared context vars not in requires.vars (or set inside {{% if %}}): {missing_vars}"
+        )
+    if extra_vars:
+        cfg.warnings.append(f"requires.vars declared but unused in template: {extra_vars}")
+
+    match = HEADER_RE.match(text)
+    body = text[match.end() :] if match else text
+    if re.search(r"(?m)^(?![ \t]*\{[%#])\S[^\n]*\n+[ \t]*\{[%#]-", body):
+        cfg.warnings.append(
+            "'{#-' or '{%-' after a rendered config line strips its trailing newline "
+            "and concatenates adjacent CLI commands under trim_blocks=True"
+        )
+    for tag_match in re.finditer(r"\{%-?\s*(?:if|elif|for)\b.*?-?%\}", body, re.S):
+        if "\n" in tag_match.group(0):
+            cfg.warnings.append(
+                "multi-line '{% if/elif/for %}' tag detected; keep Jinja control tags on a single line"
+            )
+            break
+
 
 def _check_enum(
     cfg: Configlet, key: str, allowed: set[str], required: bool = True
@@ -324,10 +372,13 @@ def _annotations(cfg: Configlet) -> str:
     roles = meta.get("roles")
     if roles:
         bits.append("/".join(roles))
+    tags = (meta.get("requires") or {}).get("tags")
+    if tags:
+        bits.append(f"tags: {', '.join(str(t) for t in tags)}")
     status = meta.get("status")
     if status and status != "active":
         bits.append(status)
-    return f" ({', '.join(bits)})" if bits else ""
+    return f" ({'; '.join(bits)})" if bits else ""
 
 
 def main() -> int:

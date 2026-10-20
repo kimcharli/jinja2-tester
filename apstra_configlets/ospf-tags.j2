@@ -9,96 +9,63 @@ category: misc
 status: active
 requires:
   vars: [system_tags, security_zones, vxlan, vlan]
-  tags: [ospf, ospf/passive, ospf-export-static, ospf-export-default]
+  tags: [ospf, ospf/passive]
 author: kimcharli@gmail.com
-updated: 2026-08-17
+updated: 2026-10-20
 ---
 Tag based OSPF configlet.
 
-OSPF configured when
-  system_tags has 'ospf'
-  vxlan.n.tags has 'ospf' (active) or 'ospf/passive'
-  vlan.n has ipv4_address, or fhrp_ipv4_address when the IRB is anycast
-  optional: rz.tags has 'ospf-export-static' or 'ospf-export-default'  ## customize in case of policies
+OSPF configured when:
+  - system_tags has 'ospf'
+  - vxlan.<n>.tags has 'ospf' (active) or 'ospf/passive'
+  - vlan.<n> has ipv4_address or fhrp_ipv4_address (anycast IRB)
 -#}
 {% set SYSTEM_OSPF_TAG = 'ospf' %}
-{% set OSPF_EXPORT_STATIC_TAG = 'ospf-export-static' %}{# custom policy #}
-{% set OSPF_EXPORT_DEFAULT_TAG = 'ospf-export-default' %}{# custom policy #}
 {% set OSPF_ACTIVE_TAG = 'ospf' %}
 {% set OSPF_PASSIVE_TAG = 'ospf/passive' %}
-{% set OSPF_VXLAN_TAGS = [OSPF_ACTIVE_TAG, OSPF_PASSIVE_TAG] %}
 {% set OSPF_AREA = '0.0.0.0' %}
 {% set OSPF_MTU = 1500 %}
-{% set OSPF_COMMUNITY = '7:30003' %}
-{% set EVPN_TO_OSPF = '192.168.249.0/26' %}
-
-{# 1. Scan security_zones upfront to check tag presence #}
-{% set static_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_STATIC_TAG) | list %}
-{% set default_check = security_zones.values() | selectattr('tags', 'defined') | selectattr('tags') | selectattr('tags', 'contains', OSPF_EXPORT_DEFAULT_TAG) | list %}
-
+{% set ORIGIN_OSPF_COMMUNITY = '65000:5555' %}
+{% set ORIGIN_FABRIC_TAG = 5555 %}
+{% set FABRIC_TO_OSPF_PREFIX = '0.0.0.0/0' %}
 
 {%- if SYSTEM_OSPF_TAG in system_tags %}{# SYSTEM_TAGS #}
-
-{#- 2. Global Import Policy & Community #}
-{# #### CUSTOMIZE: Routes should be originated from the fabric. Should not be imported back. #}
-set policy-options route-filter-list FABRIC-TO-OSPF 192.168.249.0/26 orlonger
-set policy-options community FROM_OSPF members {{ OSPF_COMMUNITY }}
-
-set policy-options policy-statement VRF-OSPF-TO-EVPN term VRF-OSPF-TO-EVPN from protocol ospf
-set policy-options policy-statement VRF-OSPF-TO-EVPN term VRF-OSPF-TO-EVPN then accept
-
-set policy-options policy-statement OSPF-TO-VRF term OSPF-TO-VRF from route-filter-list FABRIC-TO-OSPF
-set policy-options policy-statement OSPF-TO-VRF term OSPF-TO-VRF then reject
-set policy-options policy-statement OSPF-TO-VRF term else then community add FROM_OSPF
-set policy-options policy-statement OSPF-TO-VRF term else then accept
-
-{# 3. Render policy-statements once at top-level if needed #}
-{% if static_check %}
-set policy-options policy-statement VRF-TO-OSPF-STATIC term REJECT-OSPF from community FROM_OSPF
-set policy-options policy-statement VRF-TO-OSPF-STATIC term REJECT-OSPF then reject
-set policy-options policy-statement VRF-TO-OSPF-STATIC term STATIC from protocol static
-set policy-options policy-statement VRF-TO-OSPF-STATIC term STATIC then accept
-set policy-options policy-statement VRF-TO-OSPF-STATIC term EVPN_TO_OSPF from route-filter-list FABRIC_TO_OSPF
-set policy-options policy-statement VRF-TO-OSPF-STATIC term EVPN_TO_OSPF then accept
-{% endif %}
-
-{% if default_check %}
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term REJECT-OSPF from community FROM_OSPF
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term REJECT-OSPF then reject
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT from protocol static
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT from route-filter 0.0.0.0/0 exact
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT then external type 1
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term STATIC-DEFAULT then accept
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term EVPN_TO_OSPF from route-filter-list FABRIC_TO_OSPF
-set policy-options policy-statement VRF-TO-OSPF-DEFAULT term EVPN_TO_OSPF then accept
-{% endif %}
-
-{#- 4. Iterate security_zones for routing-instance & interface config #}
+{# 1. Global Policy & Community #}
+set policy-options community ORIGIN-OSPF members {{ ORIGIN_OSPF_COMMUNITY }}
+set policy-options policy-statement VRF-OSPF-TO-EVPN term BLOCK-FABRIC-REINJECT from protocol ospf
+set policy-options policy-statement VRF-OSPF-TO-EVPN term BLOCK-FABRIC-REINJECT from tag {{ ORIGIN_FABRIC_TAG }}
+set policy-options policy-statement VRF-OSPF-TO-EVPN term BLOCK-FABRIC-REINJECT then reject
+set policy-options policy-statement VRF-OSPF-TO-EVPN term MARK-OSPF from protocol ospf
+set policy-options policy-statement VRF-OSPF-TO-EVPN term MARK-OSPF then community add ORIGIN-OSPF
+set policy-options policy-statement VRF-OSPF-TO-EVPN term MARK-OSPF then accept
+set policy-options policy-statement VRF-TO-OSPF term BLOCK-OSPF-REINJECT from protocol [ bgp evpn ]
+set policy-options policy-statement VRF-TO-OSPF term BLOCK-OSPF-REINJECT from community ORIGIN-OSPF
+set policy-options policy-statement VRF-TO-OSPF term BLOCK-OSPF-REINJECT then reject
+set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC from protocol [ bgp evpn ]
+set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC from route-filter {{ FABRIC_TO_OSPF_PREFIX }} orlonger
+set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC then tag {{ ORIGIN_FABRIC_TAG }}
+set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC then external type 1
+set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC then metric 100
+set policy-options policy-statement VRF-TO-OSPF term MARK-FABRIC then accept
+{# 2. Per-Routing-Zone OSPF & IRB Config #}
 {% for sz_name, sz_value in security_zones.items() %}{# RZ_LOOP #}
 {% set ospf_vxlans = namespace(dict={}) %}
 {% for vn in vxlan.values() %}{# VXLAN_DICT #}
-{# ipv4_address (or fhrp_ipv4_address for anycast IRBs) on the bound_to VLAN is required, so filter here to keep loop.first meaningful #}
+{# Require IRB IPv4 (or anycast FHRP IPv4) on the bound VLAN so loop.first stays accurate #}
 {% if vn.vrf_name == sz_name and vn.tags and (OSPF_ACTIVE_TAG in vn.tags or OSPF_PASSIVE_TAG in vn.tags) and (vlan[vn.vlan_id | string].ipv4_address or vlan[vn.vlan_id | string].fhrp_ipv4_address) %}
 {% if ospf_vxlans.dict.update({vn.vlan_id | string: vn.tags}) %}{% endif %}
 {% endif %}
 {% endfor %}{# VXLAN_DICT #}
-{% set ospf_vxlans_dict = ospf_vxlans.dict %}
-{# DEBUG: ospf_vxlans_dict #}
-{% for vlan_id, vlan_tags in ospf_vxlans_dict.items() %}{# OSPF_VLANs #}
+{% for vlan_id, vlan_tags in ospf_vxlans.dict.items() %}{# OSPF_VLANS #}
 {% if loop.first %}{# SZ_FIRST #}
 set routing-instances {{ sz_name }} routing-options router-id {{ sz_value['loopback_ip'] }}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface {{ sz_value['loopback_intf'] }} passive
-set routing-instances {{ sz_name }} protocols ospf import OSPF-TO-VRF
-{% if OSPF_EXPORT_STATIC_TAG in sz_value.tags %}
-set routing-instances {{ sz_name }} protocols ospf export VRF-TO-OSPF-STATIC
-{% elif OSPF_EXPORT_DEFAULT_TAG in sz_value.tags %}
-set routing-instances {{ sz_name }} protocols ospf export VRF-TO-OSPF-DEFAULT
-{% endif %}
+set routing-instances {{ sz_name }} protocols ospf export VRF-TO-OSPF
 delete routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export VRF-OSPF-TO-EVPN
 set routing-instances {{ sz_name }} protocols evpn ip-prefix-routes export BGP-AOS-Policy-{{ sz_name }}
 {% endif %}{# SZ_FIRST #}
-{# passive is the more specific tag: check it first, so a VN tagged both 'ospf' and 'ospf/passive' renders passive #}
+{# Check 'ospf/passive' first so a VN tagged with both renders passive #}
 {% if OSPF_PASSIVE_TAG in vlan_tags %}
 set routing-instances {{ sz_name }} protocols ospf area {{ OSPF_AREA }} interface irb.{{ vlan_id }} passive
 {% else %}

@@ -3,8 +3,8 @@ python = "3.14"
 
 [tasks.configlets-check]
 description = "Validate configlet frontmatter headers"
-run = "python scripts/configlets.py check"
+run = "uv run python scripts/configlets.py check"
 
 [tasks.configlets-readme]
 description = "Regenerate apstra_configlets/README.md from headers"
-run = "python scripts/configlets.py readme"
+run = "uv run python scripts/configlets.py readme"
