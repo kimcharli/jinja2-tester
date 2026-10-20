@@ -8,7 +8,7 @@ roles: [all]
 category: essential
 status: example
 author: kimcharli@gmail.com
-updated: 2026-08-05
+updated: 2026-08-20
 ---
 Sytem Base Config Example.
 
@@ -22,6 +22,7 @@ Role in ["spine", "leaf"] ## ALL
 {% set RADIUS_SERVERS = ['10.85.192.3'] %}
 {% set RADIUS_SECRET = '$9$5T/tEcleWxevDkqPn6WLx7s4' %}
 {% set ROUTING_INSTANCE = "routing-instance mgmt_junos" %}
+{% set SYSTEM_MESSAGE = '' %}
 system {
     login {
         user labroot {
@@ -36,7 +37,9 @@ system {
             class super-user;
         }
 {% endif %}
-        message "BEWARE OF SECURITY";
+{% if SYSTEM_MESSAGE %}
+        message "{{ SYSTEM_MESSAGE }}";
+{% endif %}
     }
     services {
         ssh {
